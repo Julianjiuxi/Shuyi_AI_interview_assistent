@@ -5,6 +5,7 @@ import json
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.entities import BiographyProject, InterviewSession, Memory, Utterance
 from app.models.schemas import ExtractionResult, PlannerLLMResult
 from app.prompts.interview_planner import INTERVIEW_PLANNER_SYSTEM, build_interview_planner_user
@@ -51,7 +52,10 @@ class InterviewService:
         raw_extraction = self.llm.json_completion(
             MEMORY_EXTRACTOR_SYSTEM,
             build_memory_extractor_user(answer),
-            max_tokens=3000,
+            max_tokens=900,
+            model=settings.deepseek_interview_model,
+            thinking="disabled",
+            task="memory",
         )
         # 容错：模型偶尔输出 schema 之外的 memory_type，归一化为 event
         for mem in raw_extraction.get("memories", []):
@@ -99,7 +103,10 @@ class InterviewService:
         raw_plan = self.llm.json_completion(
             INTERVIEW_PLANNER_SYSTEM,
             build_interview_planner_user(project.subject_name, coverage, memories_text, recent_dialogue),
-            max_tokens=4000,
+            max_tokens=800,
+            model=settings.deepseek_interview_model,
+            thinking="disabled",
+            task="planner",
         )
         plan = PlannerLLMResult.model_validate(raw_plan)
         winner, debug = self.planner.choose(plan.candidates, coverage)

@@ -32,15 +32,24 @@ class DeepSeekClient:
         self.model = settings.deepseek_model
         self.max_retries = max_retries
 
-    def json_completion(self, system_prompt: str, user_prompt: str, max_tokens: int = 1800) -> dict[str, Any]:
+    def json_completion(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        max_tokens: int = 1800,
+        model: str | None = None,
+        thinking: str | None = None,
+        task: str = "",
+    ) -> dict[str, Any]:
         last_error: Exception | None = None
         current_max_tokens = max_tokens
+        use_model = model or self.model
 
         for attempt in range(self.max_retries):
             t0 = time.time()
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
+                kwargs: dict[str, Any] = dict(
+                    model=use_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
@@ -48,12 +57,31 @@ class DeepSeekClient:
                     response_format={"type": "json_object"},
                     max_tokens=current_max_tokens,
                 )
+                # thinking 传 None 表示走 DeepSeek 默认（enabled/high）；显式传 disabled 关闭推理。
+                if thinking is not None:
+                    kwargs["extra_body"] = {"thinking": {"type": thinking}}
+
+                response = self.client.chat.completions.create(**kwargs)
                 elapsed = time.time() - t0
                 content = response.choices[0].message.content
                 finish_reason = response.choices[0].finish_reason
                 usage = getattr(response, "usage", None)
-                tokens = f"in={usage.prompt_tokens}/out={usage.completion_tokens}" if usage else "n/a"
-                logger.info("deepseek ok: %.1fs finish=%s tokens=%s", elapsed, finish_reason, tokens)
+                if usage:
+                    prompt_tokens = getattr(usage, "prompt_tokens", 0)
+                    completion_tokens = getattr(usage, "completion_tokens", 0)
+                    ctd = getattr(usage, "completion_tokens_details", None)
+                    reasoning_tokens = getattr(ctd, "reasoning_tokens", 0) if ctd else 0
+                    logger.info(
+                        "deepseek ok: task=%s model=%s thinking=%s %.1fs finish=%s "
+                        "in=%s out=%s reasoning=%s final=%s",
+                        task or "-", use_model, thinking or "default", elapsed, finish_reason,
+                        prompt_tokens, completion_tokens, reasoning_tokens, completion_tokens - reasoning_tokens,
+                    )
+                else:
+                    logger.info(
+                        "deepseek ok: task=%s model=%s thinking=%s %.1fs finish=%s",
+                        task or "-", use_model, thinking or "default", elapsed, finish_reason,
+                    )
 
                 if not content:
                     last_error = RuntimeError("DeepSeek returned empty content")

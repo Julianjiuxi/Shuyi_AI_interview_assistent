@@ -11,15 +11,16 @@ Rules:
 5. emotional_intensity measures how emotionally charged the storyteller's own wording appears, from 0 to 1.
 6. confidence measures how directly the record is supported by the answer, from 0 to 1.
 7. unresolved_points should contain specific missing details that a good interviewer might explore.
-8. Output JSON only.
+8. Write "title", "content", and "response_summary" in Chinese (简体中文). Keep enum fields (memory_type, life_stage) as their English values.
+9. Output JSON only.
 
 Required JSON shape:
 {
   "memories": [
     {
       "memory_type": "event",
-      "title": "Short label",
-      "content": "Fact grounded in the storyteller answer",
+      "title": "简短中文标题",
+      "content": "基于讲述内容的客观事实（简体中文）",
       "life_stage": "childhood",
       "approx_year": null,
       "approx_age": 10,
@@ -32,7 +33,7 @@ Required JSON shape:
       "unresolved_points": ["Specific follow-up gap"]
     }
   ],
-  "response_summary": "One concise factual summary of this answer"
+  "response_summary": "对本段回答的中文简要概括"
 }
 
 Allowed life_stage values:

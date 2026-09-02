@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.db.session import SessionLocal
+from app.db.base import Base
+from app.db.session import SessionLocal, engine
 from app.models.schemas import (
     ChapterRequest,
     ChapterResponse,
@@ -27,6 +28,14 @@ def get_db():
 @router.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@router.post("/reset")
+def reset_database():
+    """初始化：清空所有对话记录、记忆与章节，从头开始。"""
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    return {"status": "ok", "message": "数据库已清空，从头开始"}
 
 
 @router.post("/projects", response_model=CreateProjectResponse)

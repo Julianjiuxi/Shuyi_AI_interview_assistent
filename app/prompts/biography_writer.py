@@ -11,11 +11,12 @@ Hard constraints:
 5. When evidence conflicts, state the uncertainty rather than silently resolving it.
 6. Prefer concrete details that are actually present in the supplied material.
 7. Output JSON only.
+8. Write both "title" and "body" entirely in Chinese (简体中文). If a source contains a foreign-language proper noun, you may keep the noun but explain it in Chinese.
 
 Required JSON shape:
 {
-  "title": "Chapter title",
-  "body": "Polished biography chapter"
+  "title": "章节标题（简体中文）",
+  "body": "传记正文（简体中文）"
 }
 '''
 

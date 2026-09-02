@@ -68,7 +68,7 @@ def cmd_turn(answer: str) -> None:
 
         mems = result["extracted_memories"]
         print(f"【第 {state['turn']} 答】陈建国: {answer}")
-        print(f"  ▸ 抽取记忆 {len(mems)} 条，本轮耗时 {elapsed:.1f}s")
+        print(f"  > 抽取记忆 {len(mems)} 条，本轮耗时 {elapsed:.1f}s")
         for m in mems:
             print(f"    - [{m.life_stage}/{m.memory_type}] {m.title}")
         print(f"【第 {state['turn'] + 1} 问】AI: {result['next_question']}")
