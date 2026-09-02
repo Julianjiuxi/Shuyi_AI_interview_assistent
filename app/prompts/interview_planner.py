@@ -22,14 +22,16 @@ For each candidate, estimate six values between 0 and 1:
 
 Output JSON only.
 
+Important: Write every candidate question in Chinese (简体中文), matching the storyteller's language. The interviewer and storyteller are communicating in Chinese.
+
 Required JSON shape:
 {
   "candidates": [
     {
-      "question": "What do you remember most clearly about that day?",
+      "question": "那天最让您记忆深刻的是什么？",
       "target_stage": "turning_point",
       "target_memory_id": 12,
-      "reason": "The move is important but lacks concrete scene detail.",
+      "reason": "这次迁移很重要，但缺少具体的场景细节。",
       "information_gain": 0.8,
       "emotional_value": 0.7,
       "narrative_value": 0.9,

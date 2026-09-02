@@ -37,6 +37,9 @@ Required JSON shape:
 
 Allowed life_stage values:
 childhood, education, early_adulthood, career, family, later_life, turning_point, values, historical_context, unknown.
+
+Allowed memory_type values (use ONLY these):
+person, event, place, date, value, emotion, relationship.
 '''
 
 
