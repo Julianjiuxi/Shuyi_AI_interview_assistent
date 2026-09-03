@@ -18,7 +18,11 @@ async function api(path, options = {}) {
     let detail = res.statusText;
     try {
       const data = await res.json();
-      detail = data.detail || detail;
+      if (data.error) {
+        detail = data.error.message || data.error.code || JSON.stringify(data.error);
+      } else {
+        detail = data.detail || detail;
+      }
     } catch (_) { /* ignore */ }
     throw new Error(detail);
   }
@@ -116,6 +120,7 @@ async function selectProject(id) {
   el("project-badge").textContent = detail.subject_name;
   renderProjects();
   renderChat(detail.messages);
+  updateDevCurrent();
 }
 
 async function togglePin(id) {
@@ -357,6 +362,8 @@ function speak(text) {
 // ---------- 弹窗 ----------
 function openModal() {
   el("modal-name").value = "";
+  el("modal-chinese-name").value = "";
+  el("modal-birth-year").value = "";
   el("modal-overlay").classList.remove("hidden");
   setTimeout(() => el("modal-name").focus(), 0);
 }
@@ -368,12 +375,14 @@ function closeModal() {
 async function confirmAddPerson() {
   const name = el("modal-name").value.trim();
   if (!name) return;
+  const chineseName = el("modal-chinese-name").value.trim();
+  const birthYear = el("modal-birth-year").value.trim();
   closeModal();
   try {
-    const created = await api("/api/projects", {
-      method: "POST",
-      body: { subject_name: name },
-    });
+    const body = { subject_name: name };
+    if (chineseName) body.chinese_name = chineseName;
+    if (birthYear) body.birth_year = parseInt(birthYear, 10);
+    const created = await api("/api/projects", { method: "POST", body });
     await loadProjects();
     await selectProject(created.project_id);
   } catch (err) {
@@ -439,6 +448,7 @@ function bindEvents() {
 // ---------- 启动 ----------
 async function init() {
   bindEvents();
+  initDevPanel();
   try {
     await loadProjects();
   } catch (err) {
@@ -448,3 +458,280 @@ async function init() {
 }
 
 init();
+
+// ============================================================
+// 接口测试面板
+// ============================================================
+let _lastFamilyId = null;
+
+function devVal(id) {
+  const node = el(id);
+  return node ? node.value.trim() : "";
+}
+
+function devInt(id) {
+  const v = devVal(id);
+  return v === "" ? null : parseInt(v, 10);
+}
+
+// 读取 project_id：输入框留空则回退到当前选中项目
+function devPid(inputId) {
+  const v = devVal(inputId);
+  if (v !== "") return parseInt(v, 10);
+  if (state.current) return state.current.id;
+  throw new Error("请先填写 project_id 或在左侧选择一个访谈人物");
+}
+
+function showDevResult(obj) {
+  const body = el("dev-result-body");
+  body.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+}
+
+function updateDevCurrent() {
+  const node = el("dev-current");
+  if (!node) return;
+  node.textContent = state.current
+    ? `当前人物 #${state.current.id} ${state.current.subject_name}`
+    : "未选择人物";
+}
+
+function apiFormData(path, formData) {
+  return fetch(path, { method: "POST", body: formData }).then(async (res) => {
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data.error
+        ? data.error.message || data.error.code
+        : data.detail || res.statusText;
+      throw new Error(msg);
+    }
+    return data;
+  });
+}
+
+function splitIds(text) {
+  return text.split(",").map((s) => s.trim()).filter(Boolean).map(Number);
+}
+
+async function runDevOp(op) {
+  try {
+    let result = null;
+    switch (op) {
+      case "family-create": {
+        const name = devVal("f-name");
+        if (!name) throw new Error("家庭名称必填");
+        const body = { name };
+        const desc = devVal("f-desc");
+        if (desc) body.description = desc;
+        result = await api("/api/families", { method: "POST", body });
+        _lastFamilyId = result.id;
+        break;
+      }
+      case "family-list":
+        result = await api("/api/families");
+        if (result.items && result.items.length) _lastFamilyId = result.items[0].id;
+        break;
+      case "family-tree": {
+        const fid = devVal("f-tree-id") || _lastFamilyId;
+        if (!fid) throw new Error("请先创建/查询家庭，或填写家庭 ID");
+        result = await api(`/api/families/${fid}/tree`);
+        break;
+      }
+      case "rel-create": {
+        const fid = devInt("rel-fid");
+        const from = devInt("rel-from");
+        const to = devInt("rel-to");
+        if (!fid || !from || !to) throw new Error("家庭 ID、from、to 均为必填");
+        result = await api(`/api/families/${fid}/relationships`, {
+          method: "POST",
+          body: { from_project_id: from, to_project_id: to, relation_type: el("rel-type").value },
+        });
+        break;
+      }
+      case "rel-delete": {
+        const rid = devInt("rel-del-id");
+        if (!rid) throw new Error("relationship_id 必填");
+        result = await api(`/api/relationships/${rid}`, { method: "DELETE" });
+        break;
+      }
+      case "mem-list": {
+        const pid = devPid("m-proj");
+        let url = `/api/projects/${pid}/memories`;
+        const status = devVal("m-status");
+        if (status) url += `?status=${encodeURIComponent(status)}`;
+        result = await api(url);
+        break;
+      }
+      case "mem-confirm": {
+        const mid = devInt("m-id");
+        if (!mid) throw new Error("memory_id 必填");
+        result = await api(`/api/memories/${mid}/confirm`, {
+          method: "POST",
+          body: { confirmed_by: "dev", review_note: devVal("m-note") },
+        });
+        break;
+      }
+      case "mem-reject": {
+        const mid = devInt("m-id");
+        if (!mid) throw new Error("memory_id 必填");
+        result = await api(`/api/memories/${mid}/reject`, {
+          method: "POST",
+          body: { review_note: devVal("m-note") },
+        });
+        break;
+      }
+      case "mem-update": {
+        const mid = devInt("m-edit-id");
+        if (!mid) throw new Error("memory_id 必填");
+        const body = {};
+        const content = devVal("m-edit-content");
+        if (content) body.content = content;
+        const importance = devVal("m-edit-importance");
+        if (importance !== "") body.importance = parseFloat(importance);
+        result = await api(`/api/memories/${mid}`, { method: "PATCH", body });
+        break;
+      }
+      case "mem-bulk": {
+        const pid = devPid("m-bulk-proj");
+        result = await api(`/api/projects/${pid}/memories/bulk-review`, {
+          method: "POST",
+          body: { confirm_ids: splitIds(devVal("m-bulk-confirm")), reject_ids: splitIds(devVal("m-bulk-reject")) },
+        });
+        break;
+      }
+      case "doc-generate": {
+        const pid = devPid("d-proj");
+        const types = devVal("d-types").split(",").map((s) => s.trim()).filter(Boolean);
+        if (!types.length) throw new Error("请填写文稿类型");
+        const body = { document_types: types };
+        const lang = devVal("d-lang");
+        if (lang) body.language = lang;
+        result = await api(`/api/projects/${pid}/documents/generate`, { method: "POST", body });
+        break;
+      }
+      case "doc-list": {
+        const pid = devPid("d-list-proj");
+        result = await api(`/api/projects/${pid}/documents`);
+        break;
+      }
+      case "doc-approve": {
+        const did = devInt("d-id");
+        if (!did) throw new Error("document_id 必填");
+        result = await api(`/api/documents/${did}/approve`, { method: "POST" });
+        break;
+      }
+      case "doc-delete": {
+        const did = devInt("d-id");
+        if (!did) throw new Error("document_id 必填");
+        result = await api(`/api/documents/${did}`, { method: "DELETE" });
+        break;
+      }
+      case "archive-get":
+        result = await api(`/api/projects/${devPid("a-proj")}/archive`);
+        break;
+      case "archive-status":
+        result = await api(`/api/projects/${devPid("a-proj")}/archive/status`);
+        break;
+      case "archive-usage":
+        result = await api(`/api/projects/${devPid("a-proj")}/usage`);
+        break;
+      case "img-create": {
+        const prompt = devVal("img-prompt");
+        if (!prompt) throw new Error("prompt 必填");
+        result = await api(`/api/projects/${devPid("img-proj")}/media/images`, { method: "POST", body: { prompt } });
+        break;
+      }
+      case "au-create": {
+        const text = devVal("au-text");
+        const voice = devVal("au-voice");
+        if (!text || !voice) throw new Error("text 与 voice_id 必填");
+        result = await api(`/api/projects/${devPid("au-proj")}/media/audio`, { method: "POST", body: { voice_id: voice, text } });
+        break;
+      }
+      case "vi-create": {
+        const prompt = devVal("vi-prompt");
+        if (!prompt) throw new Error("prompt 必填");
+        result = await api(`/api/projects/${devPid("vi-proj")}/media/videos`, { method: "POST", body: { prompt } });
+        break;
+      }
+      case "job-get": {
+        const jid = devInt("job-id");
+        if (!jid) throw new Error("job_id 必填");
+        result = await api(`/api/media/jobs/${jid}`);
+        break;
+      }
+      case "media-list":
+        result = await api(`/api/projects/${devPid("media-proj")}/media`);
+        break;
+      case "file-upload": {
+        const fileInput = el("file-input");
+        if (!fileInput.files.length) throw new Error("请选择文件");
+        const form = new FormData();
+        form.append("file", fileInput.files[0]);
+        result = await apiFormData("/api/files", form);
+        break;
+      }
+      case "proj-update": {
+        const body = {};
+        const fields = [
+          ["p-display", "display_name"], ["p-chinese", "chinese_name"],
+          ["p-gender", "gender"], ["p-birth", "birth_year"], ["p-place", "birth_place"],
+        ];
+        for (const [field, key] of fields) {
+          const v = devVal(field);
+          if (v !== "") body[key] = field === "p-birth" ? parseInt(v, 10) : v;
+        }
+        result = await api(`/api/projects/${devPid("p-proj")}`, { method: "PATCH", body });
+        break;
+      }
+      case "proj-archive":
+        result = await api(`/api/projects/${devPid("p-arch-proj")}/archive-status`, {
+          method: "PATCH",
+          body: { status: el("p-arch-status").value },
+        });
+        break;
+      case "sess-list":
+        result = await api(`/api/projects/${devPid("p-sess-proj")}/sessions`);
+        break;
+      case "sess-complete": {
+        const sid = devInt("p-sess-id");
+        if (!sid) throw new Error("session_id 必填");
+        result = await api(`/api/sessions/${sid}/complete`, { method: "POST" });
+        break;
+      }
+      default:
+        throw new Error("未知操作：" + op);
+    }
+    showDevResult(result);
+  } catch (err) {
+    showDevResult({ error: err.message });
+  }
+}
+
+function initDevPanel() {
+  const openBtn = el("dev-open-btn");
+  const panel = el("dev-panel");
+  if (!openBtn || !panel) return;
+
+  openBtn.addEventListener("click", () => {
+    panel.classList.remove("hidden");
+    updateDevCurrent();
+  });
+  el("dev-close").addEventListener("click", () => panel.classList.add("hidden"));
+  el("dev-result-clear").addEventListener("click", () => {
+    el("dev-result-body").textContent = "（暂无结果）";
+  });
+
+  panel.querySelectorAll(".dev-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      panel.querySelectorAll(".dev-tab").forEach((t) => t.classList.remove("active"));
+      panel.querySelectorAll(".dev-pane").forEach((p) => p.classList.remove("active"));
+      tab.classList.add("active");
+      const pane = el("pane-" + tab.dataset.tab);
+      if (pane) pane.classList.add("active");
+    });
+  });
+
+  panel.querySelectorAll(".dev-run").forEach((btn) => {
+    btn.addEventListener("click", () => runDevOp(btn.dataset.op));
+  });
+}

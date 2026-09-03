@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -25,8 +26,31 @@ class InterviewService:
         self.llm = llm or DeepSeekClient()
         self.planner = InterviewPlanner()
 
-    def create_project(self, subject_name: str) -> tuple[BiographyProject, InterviewSession, str]:
-        project = BiographyProject(subject_name=subject_name)
+    def create_project(
+        self,
+        subject_name: str,
+        family_id: int | None = None,
+        display_name: str | None = None,
+        chinese_name: str | None = None,
+        gender: str | None = None,
+        birth_year: int | None = None,
+        death_year: int | None = None,
+        birth_place: str | None = None,
+        current_place: str | None = None,
+        visibility: str = "private",
+    ) -> tuple[BiographyProject, InterviewSession, str]:
+        project = BiographyProject(
+            subject_name=subject_name,
+            family_id=family_id,
+            display_name=display_name,
+            chinese_name=chinese_name,
+            gender=gender,
+            birth_year=birth_year,
+            death_year=death_year,
+            birth_place=birth_place,
+            current_place=current_place,
+            visibility=visibility,
+        )
         self.db.add(project)
         self.db.flush()
 
@@ -121,4 +145,42 @@ class InterviewService:
                 "coverage": coverage,
                 "ranked_candidates": debug,
             },
+        }
+
+    def complete_session(self, session_id: int) -> dict:
+        """结束访谈：写 ended_at、生成 session_summary，并将未整理记忆置为 review。"""
+        session = self.db.get(InterviewSession, session_id)
+        if not session:
+            raise ValueError("Session not found")
+
+        session.ended_at = datetime.utcnow()
+
+        utterances = list(
+            self.db.scalars(
+                select(Utterance)
+                .where(Utterance.session_id == session_id, Utterance.role == "storyteller")
+                .order_by(Utterance.id.asc())
+            )
+        )
+        # MVP：拼接受访者原文生成摘要，避免额外 LLM 调用。
+        raw_text = " ".join(u.text for u in utterances)
+        session.session_summary = raw_text[:500]
+
+        # 将该项目尚未整理的记忆置为 review。
+        memories = list(
+            self.db.scalars(
+                select(Memory)
+                .where(Memory.project_id == session.project_id, Memory.status == "extracted")
+            )
+        )
+        for m in memories:
+            m.status = "review"
+        self.db.commit()
+
+        unresolved_count = sum(1 for m in memories if json.loads(m.unresolved_json or "[]"))
+        return {
+            "session_id": session.id,
+            "status": "completed",
+            "memory_count": len(memories),
+            "unresolved_count": unresolved_count,
         }

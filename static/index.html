@@ -72,7 +72,14 @@
           <span id="project-badge" class="project-badge">述忆 · AI 传记访谈</span>
           <span class="tip-note">AI 生成内容，请注意核实</span>
         </div>
-        <div class="topbar-right"></div>
+        <div class="topbar-right">
+          <button id="dev-open-btn" class="tb-icon-btn" title="接口测试面板">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+          </button>
+        </div>
       </header>
 
       <!-- 对话流 -->
@@ -126,12 +133,217 @@
     <div class="modal">
       <h2>创建新访谈</h2>
       <input id="modal-name" type="text" placeholder="讲述人姓名，如：陈建国" autocomplete="off" />
+      <input id="modal-chinese-name" type="text" placeholder="中文名（可选）" autocomplete="off" />
+      <input id="modal-birth-year" type="number" placeholder="出生年（可选）" autocomplete="off" />
       <div class="modal-actions">
         <button id="modal-cancel" class="btn-ghost">取消</button>
         <button id="modal-ok" class="btn-primary">开始访谈</button>
       </div>
     </div>
   </div>
+
+  <!-- =============== 接口测试面板 =============== -->
+  <aside id="dev-panel" class="dev-panel hidden">
+    <div class="dev-header">
+      <span class="dev-title">接口测试面板</span>
+      <span id="dev-current" class="dev-current"></span>
+      <button id="dev-close" class="dev-close" title="关闭">×</button>
+    </div>
+    <div class="dev-tabs">
+      <button class="dev-tab active" data-tab="family">家庭</button>
+      <button class="dev-tab" data-tab="memory">记忆</button>
+      <button class="dev-tab" data-tab="document">文稿</button>
+      <button class="dev-tab" data-tab="archive">档案</button>
+      <button class="dev-tab" data-tab="media">媒体</button>
+      <button class="dev-tab" data-tab="file">文件</button>
+      <button class="dev-tab" data-tab="project">项目</button>
+    </div>
+    <div class="dev-body">
+
+      <!-- 家庭 -->
+      <div class="dev-pane active" id="pane-family">
+        <div class="dev-op">
+          <div class="dev-op-title">创建家庭</div>
+          <input id="f-name" placeholder="名称（必填）" />
+          <input id="f-desc" placeholder="描述" />
+          <button class="dev-run" data-op="family-create">POST /families</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">家庭列表</div>
+          <button class="dev-run" data-op="family-list">GET /families</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">家谱树</div>
+          <input id="f-tree-id" class="pid" placeholder="家庭 ID（留空用最近家庭）" />
+          <button class="dev-run" data-op="family-tree">GET /families/{id}/tree</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">创建关系</div>
+          <input id="rel-fid" class="pid" placeholder="家庭 ID" />
+          <input id="rel-from" type="number" placeholder="from_project_id" />
+          <input id="rel-to" type="number" placeholder="to_project_id" />
+          <select id="rel-type">
+            <option value="parent">parent</option>
+            <option value="child">child</option>
+            <option value="spouse">spouse</option>
+            <option value="sibling">sibling</option>
+            <option value="grandparent">grandparent</option>
+            <option value="grandchild">grandchild</option>
+            <option value="other">other</option>
+          </select>
+          <button class="dev-run" data-op="rel-create">POST /relationships</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">删除关系</div>
+          <input id="rel-del-id" type="number" placeholder="relationship_id" />
+          <button class="dev-run" data-op="rel-delete">DELETE /relationships/{id}</button>
+        </div>
+      </div>
+
+      <!-- 记忆 -->
+      <div class="dev-pane" id="pane-memory">
+        <div class="dev-op">
+          <div class="dev-op-title">记忆列表</div>
+          <input id="m-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="m-status" placeholder="status 过滤（可选）" />
+          <button class="dev-run" data-op="mem-list">GET /projects/{id}/memories</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">确认 / 驳回记忆</div>
+          <input id="m-id" type="number" placeholder="memory_id" />
+          <input id="m-note" placeholder="备注（驳回时填写）" />
+          <button class="dev-run" data-op="mem-confirm">确认 confirm</button>
+          <button class="dev-run" data-op="mem-reject">驳回 reject</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">编辑记忆（可选字段）</div>
+          <input id="m-edit-id" type="number" placeholder="memory_id" />
+          <input id="m-edit-content" placeholder="content（留空不改）" />
+          <input id="m-edit-importance" type="number" step="0.1" placeholder="importance 0~1" />
+          <button class="dev-run" data-op="mem-update">PATCH /memories/{id}</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">批量审核</div>
+          <input id="m-bulk-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="m-bulk-confirm" placeholder="confirm_ids（逗号分隔）" />
+          <input id="m-bulk-reject" placeholder="reject_ids（逗号分隔）" />
+          <button class="dev-run" data-op="mem-bulk">POST bulk-review</button>
+        </div>
+      </div>
+
+      <!-- 文稿 -->
+      <div class="dev-pane" id="pane-document">
+        <div class="dev-op">
+          <div class="dev-op-title">生成文稿</div>
+          <input id="d-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="d-types" placeholder="类型，逗号分隔：biography,summary" />
+          <input id="d-lang" placeholder="language（默认 en）" />
+          <button class="dev-run" data-op="doc-generate">POST /documents/generate</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">文稿列表</div>
+          <input id="d-list-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <button class="dev-run" data-op="doc-list">GET /documents</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">审批 / 删除文稿</div>
+          <input id="d-id" type="number" placeholder="document_id" />
+          <button class="dev-run" data-op="doc-approve">approve</button>
+          <button class="dev-run" data-op="doc-delete">delete</button>
+        </div>
+      </div>
+
+      <!-- 档案 -->
+      <div class="dev-pane" id="pane-archive">
+        <div class="dev-op">
+          <div class="dev-op-title">档案聚合</div>
+          <input id="a-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <button class="dev-run" data-op="archive-get">GET /archive</button>
+          <button class="dev-run" data-op="archive-status">GET /archive/status</button>
+          <button class="dev-run" data-op="archive-usage">GET /usage</button>
+        </div>
+      </div>
+
+      <!-- 媒体 -->
+      <div class="dev-pane" id="pane-media">
+        <div class="dev-op">
+          <div class="dev-op-title">生成图片任务</div>
+          <input id="img-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="img-prompt" placeholder="prompt（必填）" />
+          <button class="dev-run" data-op="img-create">POST /media/images</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">生成语音任务</div>
+          <input id="au-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="au-text" placeholder="text（必填）" />
+          <input id="au-voice" placeholder="voice_id（必填）" />
+          <button class="dev-run" data-op="au-create">POST /media/audio</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">生成视频任务</div>
+          <input id="vi-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="vi-prompt" placeholder="prompt（必填）" />
+          <button class="dev-run" data-op="vi-create">POST /media/videos</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">任务状态 / 资源列表</div>
+          <input id="job-id" type="number" placeholder="job_id" />
+          <input id="media-proj" class="pid" type="number" placeholder="project_id（资源列表用）" />
+          <button class="dev-run" data-op="job-get">GET /media/jobs/{id}</button>
+          <button class="dev-run" data-op="media-list">GET /media 资源列表</button>
+        </div>
+      </div>
+
+      <!-- 文件 -->
+      <div class="dev-pane" id="pane-file">
+        <div class="dev-op">
+          <div class="dev-op-title">上传文件</div>
+          <input id="file-input" type="file" />
+          <button class="dev-run" data-op="file-upload">POST /files</button>
+        </div>
+      </div>
+
+      <!-- 项目 -->
+      <div class="dev-pane" id="pane-project">
+        <div class="dev-op">
+          <div class="dev-op-title">更新项目档案</div>
+          <input id="p-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="p-display" placeholder="display_name" />
+          <input id="p-chinese" placeholder="chinese_name" />
+          <input id="p-gender" placeholder="gender（male/female）" />
+          <input id="p-birth" type="number" placeholder="birth_year" />
+          <input id="p-place" placeholder="birth_place" />
+          <button class="dev-run" data-op="proj-update">PATCH /projects/{id}</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">归档状态</div>
+          <input id="p-arch-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <select id="p-arch-status">
+            <option value="draft">draft</option>
+            <option value="review">review</option>
+            <option value="approved">approved</option>
+            <option value="published">published</option>
+          </select>
+          <button class="dev-run" data-op="proj-archive">PATCH archive-status</button>
+        </div>
+        <div class="dev-op">
+          <div class="dev-op-title">会话</div>
+          <input id="p-sess-proj" class="pid" type="number" placeholder="project_id（留空用当前）" />
+          <input id="p-sess-id" type="number" placeholder="session_id（完成会话用）" />
+          <button class="dev-run" data-op="sess-list">GET sessions</button>
+          <button class="dev-run" data-op="sess-complete">POST complete</button>
+        </div>
+      </div>
+
+      <div class="dev-result">
+        <div class="dev-result-head">
+          <span>响应结果</span>
+          <button id="dev-result-clear" class="dev-clear">清空</button>
+        </div>
+        <pre id="dev-result-body">（暂无结果）</pre>
+      </div>
+    </div>
+  </aside>
 
   <script src="/static/app.js"></script>
 </body>
