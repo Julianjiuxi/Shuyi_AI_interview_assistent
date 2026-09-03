@@ -1,8 +1,12 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
+from app.models.entities import BiographyProject, InterviewSession, Utterance
 from app.models.schemas import (
     ChapterRequest,
     ChapterResponse,
@@ -10,6 +14,9 @@ from app.models.schemas import (
     CreateProjectResponse,
     InterviewTurnRequest,
     InterviewTurnResponse,
+    Message,
+    ProjectDetail,
+    ProjectListItem,
 )
 from app.services.biography_service import BiographyService
 from app.services.interview_service import InterviewService
@@ -36,6 +43,77 @@ def reset_database():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     return {"status": "ok", "message": "数据库已清空，从头开始"}
+
+
+@router.get("/projects", response_model=list[ProjectListItem])
+def list_projects(db: Session = Depends(get_db)):
+    projects = db.scalars(
+        select(BiographyProject).order_by(
+            BiographyProject.pinned.desc(),
+            BiographyProject.pinned_at.desc(),
+            BiographyProject.id.desc(),
+        )
+    ).all()
+    return [
+        ProjectListItem(
+            id=p.id,
+            subject_name=p.subject_name,
+            pinned=p.pinned,
+            created_at=p.created_at,
+        )
+        for p in projects
+    ]
+
+
+@router.get("/projects/{project_id}", response_model=ProjectDetail)
+def get_project(project_id: int, db: Session = Depends(get_db)):
+    project = db.get(BiographyProject, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    session = db.scalars(
+        select(InterviewSession)
+        .where(InterviewSession.project_id == project_id)
+        .order_by(InterviewSession.id.desc())
+    ).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="No session found")
+
+    utterances = db.scalars(
+        select(Utterance)
+        .where(Utterance.session_id == session.id)
+        .order_by(Utterance.id.asc())
+    ).all()
+    messages = [Message(role=u.role, text=u.text) for u in utterances]
+
+    return ProjectDetail(
+        id=project.id,
+        subject_name=project.subject_name,
+        pinned=project.pinned,
+        session_id=session.id,
+        messages=messages,
+    )
+
+
+@router.post("/projects/{project_id}/pin")
+def toggle_pin(project_id: int, db: Session = Depends(get_db)):
+    project = db.get(BiographyProject, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project.pinned = not project.pinned
+    project.pinned_at = datetime.utcnow() if project.pinned else None
+    db.commit()
+    return {"id": project.id, "pinned": project.pinned}
+
+
+@router.delete("/projects/{project_id}")
+def delete_project(project_id: int, db: Session = Depends(get_db)):
+    project = db.get(BiographyProject, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    db.delete(project)
+    db.commit()
+    return {"status": "ok", "deleted": project_id}
 
 
 @router.post("/projects", response_model=CreateProjectResponse)

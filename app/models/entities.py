@@ -14,6 +14,8 @@ class BiographyProject(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     subject_name: Mapped[str] = mapped_column(String(120), default="Unknown")
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+    pinned_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     sessions: Mapped[list[InterviewSession]] = relationship(back_populates="project", cascade="all, delete-orphan")

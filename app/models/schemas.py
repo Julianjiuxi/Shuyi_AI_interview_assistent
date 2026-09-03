@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -77,3 +78,23 @@ class ChapterRequest(BaseModel):
 class ChapterResponse(BaseModel):
     title: str
     body: str
+
+
+class ProjectListItem(BaseModel):
+    id: int
+    subject_name: str
+    pinned: bool
+    created_at: datetime
+
+
+class Message(BaseModel):
+    role: str
+    text: str
+
+
+class ProjectDetail(BaseModel):
+    id: int
+    subject_name: str
+    pinned: bool
+    session_id: int
+    messages: list[Message]
