@@ -133,13 +133,20 @@ class InterviewService:
             task="planner",
         )
         plan = PlannerLLMResult.model_validate(raw_plan)
-        winner, debug = self.planner.choose(plan.candidates, coverage)
+        state = plan.conversation_state
 
-        self.db.add(Utterance(session_id=session_id, role="interviewer", text=_clean_text(winner.question)))
+        eligible = self.planner.filter_candidates(plan.candidates, state)
+        question_streak = self.planner.compute_question_streak(list(reversed(recent)))
+        winner, debug = self.planner.choose(eligible, coverage, state, question_streak)
+
+        self.db.add(Utterance(session_id=session_id, role="interviewer", text=_clean_text(winner.utterance)))
         self.db.commit()
 
         return {
-            "next_question": winner.question,
+            "next_question": winner.utterance,
+            "next_utterance": winner.utterance,
+            "dialogue_act": winner.act_type,
+            "conversation_state": state.model_dump(),
             "extracted_memories": extraction.memories,
             "planner_debug": {
                 "coverage": coverage,

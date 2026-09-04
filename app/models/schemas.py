@@ -52,21 +52,43 @@ class ExtractionResult(BaseModel):
     response_summary: str = ""
 
 
-class CandidateQuestion(BaseModel):
-    question: str
+class ConversationState(BaseModel):
+    current_focus: Optional[str] = None
+    focus_stage: Optional[str] = None
+    focus_memory_id: Optional[int] = None
+    focus_strength: float = Field(default=0.0, ge=0, le=1)
+    storyteller_lead: float = Field(default=0.0, ge=0, le=1)
+    closure_signal: float = Field(default=0.0, ge=0, le=1)
+    user_focus_lock: bool = False
+
+
+ActType = Literal["reflect", "invite_continue", "deepen", "clarify", "bridge", "transition"]
+DialogueForm = Literal["statement", "invitation", "question"]
+TopicRelation = Literal["same", "adjacent", "new"]
+
+
+class CandidateDialogueMove(BaseModel):
+    utterance: str
+    act_type: ActType
+    form: DialogueForm
+    topic_relation: TopicRelation
     target_stage: LifeStage = "unknown"
     target_memory_id: Optional[int] = None
-    reason: str
-    information_gain: float = Field(ge=0, le=1)
-    emotional_value: float = Field(ge=0, le=1)
-    narrative_value: float = Field(ge=0, le=1)
-    novelty: float = Field(ge=0, le=1)
-    sensitivity_risk: float = Field(ge=0, le=1)
-    repetition_risk: float = Field(ge=0, le=1)
+    reason: str = ""
+    focus_alignment: float = Field(default=0.0, ge=0, le=1)
+    storyteller_alignment: float = Field(default=0.0, ge=0, le=1)
+    conversational_naturalness: float = Field(default=0.0, ge=0, le=1)
+    information_gain: float = Field(default=0.0, ge=0, le=1)
+    emotional_value: float = Field(default=0.0, ge=0, le=1)
+    narrative_value: float = Field(default=0.0, ge=0, le=1)
+    novelty: float = Field(default=0.0, ge=0, le=1)
+    sensitivity_risk: float = Field(default=0.0, ge=0, le=1)
+    repetition_risk: float = Field(default=0.0, ge=0, le=1)
 
 
 class PlannerLLMResult(BaseModel):
-    candidates: list[CandidateQuestion] = Field(default_factory=list)
+    conversation_state: ConversationState = Field(default_factory=ConversationState)
+    candidates: list[CandidateDialogueMove] = Field(default_factory=list)
 
 
 class InterviewTurnRequest(BaseModel):
@@ -77,6 +99,9 @@ class InterviewTurnRequest(BaseModel):
 
 class InterviewTurnResponse(BaseModel):
     next_question: str
+    next_utterance: str = ""
+    dialogue_act: str = ""
+    conversation_state: Optional[dict] = None
     extracted_memories: list[ExtractedMemory]
     planner_debug: dict
 
