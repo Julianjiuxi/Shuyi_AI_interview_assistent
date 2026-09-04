@@ -91,3 +91,11 @@ def approve_document(document_id: int, db: Session = Depends(get_db)):
         return DocumentService(db).approve_document(document_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.post("/documents/{document_id}/publish", response_model=DocumentOut)
+def publish_document(document_id: int, db: Session = Depends(get_db)):
+    try:
+        return DocumentService(db).publish_document(document_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc

@@ -53,3 +53,20 @@ def test_archive_status(db_session):
     assert status["project_id"] == project.id
     assert status["archive_status"] == "draft"
     assert "memories" in status
+
+
+def test_archive_prefers_requested_language(db_session):
+    project = BiographyProject(subject_name="林美珍")
+    db_session.add(project)
+    db_session.commit()
+
+    en_doc = Document(project_id=project.id, document_type="chapter", title="English story", body="正文", status="published", language="en")
+    zh_doc = Document(project_id=project.id, document_type="chapter", title="中文故事", body="正文", status="published", language="zh-CN")
+    db_session.add_all([en_doc, zh_doc])
+    db_session.commit()
+
+    assert ArchiveService(db_session).get_archive(project.id, language="en")["featured_story"]["title"] == "English story"
+    assert ArchiveService(db_session).get_archive(project.id, language="zh-CN")["featured_story"]["title"] == "中文故事"
+
+    # 找不到指定语言时回退到任意已发布文稿
+    assert ArchiveService(db_session).get_archive(project.id, language="fr")["featured_story"] is not None

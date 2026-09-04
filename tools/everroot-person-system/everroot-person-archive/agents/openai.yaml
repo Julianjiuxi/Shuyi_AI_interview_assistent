@@ -1,0 +1,4 @@
+interface:
+  display_name: "Everroot Person Archive"
+  short_description: "Build reusable family profiles from approved memories"
+  default_prompt: "Use $everroot-person-archive to turn this approved person record into an Everroot profile with story, letter, voice, film, and webpage."

@@ -33,8 +33,8 @@
 
 ```
 ShuYi/
-├── app/
-│   ├── api/                  # FastAPI 路由（routes / families / memories / documents / archives / media / files / errors / deps）
+├── app/                      # FastAPI 后端
+│   ├── api/                  # 路由（routes / families / memories / documents / archives / media / files / errors / deps）
 │   ├── core/config.py        # 配置读取（.env）
 │   ├── db/                   # SQLAlchemy engine / session / base
 │   ├── models/               # entities（表模型）与 schemas（Pydantic）
@@ -42,7 +42,14 @@ ShuYi/
 │   ├── services/             # 访谈、文稿、档案、媒体任务、MiniMax、存储、规划器
 │   ├── workers/              # 媒体任务后台执行（MVP 用 BackgroundTasks）
 │   └── main.py               # FastAPI 应用入口（含前端/静态/上传挂载）
-├── static/                   # Web 前端（index.html / style.css / app.js）
+├── frontend/                 # Everroot 前端（React 19 + Vinext + Vite，面向用户的家庭记忆展示）
+├── tools/
+│   └── everroot-person-system/  # 通用人物档案生成系统（Skill + 网页模板 + 安装脚本）
+├── examples/
+│   └── lin-meizhen/          # 林美珍示例人物（person.json + 媒体素材）
+├── docs/
+│   └── everroot/             # Everroot 集成文档（后端需求 + ShuYi 对接说明）
+├── static/                   # 后端 Dev Console（index.html / style.css / app.js）
 ├── scripts/
 │   ├── demo_cli.py           # 命令行交互式访谈演示
 │   └── init_db.py            # 初始化数据库表（可选）
@@ -52,11 +59,45 @@ ShuYi/
 └── README.md
 ```
 
+## 前端（Everroot）
+
+`frontend/` 是面向用户的家庭记忆展示前端（原 `Everroot-Final-Package/01-live-website`），技术栈为 React 19 + Vinext + Vite，独立于后端进程运行。
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+> 要求 Node >= 22.13.0。在 `frontend/.env.local` 中配置（`.env.local` 已被 gitignore，不会提交）：
+
+```bash
+# 数据源：mock 走内置林美珍 Demo，api 走真实 ShuYi 后端
+NEXT_PUBLIC_SHUYI_DATA_SOURCE=mock
+# 真实后端地址（api 模式生效）
+NEXT_PUBLIC_SHUYI_API_BASE_URL=http://127.0.0.1:8000
+# 展示的家庭 ID（api 模式生效）
+NEXT_PUBLIC_SHUYI_FAMILY_ID=1
+# 档案文稿语言偏好，默认 zh-CN
+NEXT_PUBLIC_SHUYI_ARCHIVE_LANGUAGE=zh-CN
+```
+
+> `DATA_SOURCE=mock` 时前端无需后端即可演示；切到 `api` 后前端仅读取公开档案接口（家谱 `/families/{id}/tree`、档案 `/projects/{id}/archive`、状态 `/projects/{id}/archive/status`），不读取原始对话与未审核记忆。
+
+其余目录：
+
+- `tools/everroot-person-system/`：通用人物档案生成系统（Codex Skill + 网页模板 + 安装脚本）。
+- `examples/lin-meizhen/`：林美珍示例人物（结构化数据 + 媒体素材）。
+- `docs/everroot/`：Everroot 后端需求与 ShuYi 对接文档。
+
+后端与前端是两个进程，本地开发分别启动（后端 `uvicorn app.main:app --reload`，前端 `npm run dev`）。
+
 ## 环境要求
 
 - Python 3.10+
 - 一个有效的 DeepSeek API Key
 - （可选）MiniMax API Key，用于媒体生成
+- （前端）Node >= 22.13.0
 
 ## Quick Start
 
@@ -409,6 +450,10 @@ pytest -q
 #### POST /api/documents/{document_id}/approve
 
 审批文稿（`status → approved`）。
+
+#### POST /api/documents/{document_id}/publish
+
+发布文稿（`status → published`）。审批（approved）与发布（published）是两个独立动作：审批通过表示内容已核对，发布后才进入档案聚合、向家庭成员展示。
 
 ### 档案聚合
 

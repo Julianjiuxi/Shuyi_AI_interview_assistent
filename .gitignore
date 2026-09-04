@@ -6,3 +6,4 @@ __pycache__/
 *.db
 .DS_Store
 _interview_state.json
+.trae/

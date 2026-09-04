@@ -156,23 +156,28 @@ class ArchiveService:
             if m.approx_year is not None
         ]
 
-        # Featured Story / 家书
-        def _latest_published(types: list[str]) -> dict | None:
+        # Featured Story / 家书：优先返回指定语言的已发布文稿，找不到时回退到任意语言。
+        def _latest_published(types: list[str], lang: str | None = None) -> dict | None:
+            base = [
+                Document.project_id == project_id,
+                Document.document_type.in_(types),
+                Document.status == "published",
+            ]
+            if lang:
+                doc = self.db.scalars(
+                    select(Document).where(*base, Document.language == lang).order_by(Document.id.desc())
+                ).first()
+                if doc:
+                    return {"document_id": doc.id, "title": doc.title, "body": doc.body}
             doc = self.db.scalars(
-                select(Document)
-                .where(
-                    Document.project_id == project_id,
-                    Document.document_type.in_(types),
-                    Document.status == "published",
-                )
-                .order_by(Document.id.desc())
+                select(Document).where(*base).order_by(Document.id.desc())
             ).first()
             if not doc:
                 return None
             return {"document_id": doc.id, "title": doc.title, "body": doc.body}
 
-        featured_story = _latest_published(["biography", "chapter"])
-        family_letter = _latest_published(["family_letter"])
+        featured_story = _latest_published(["biography", "chapter"], language)
+        family_letter = _latest_published(["family_letter"], language)
 
         # 媒体分组
         media = {

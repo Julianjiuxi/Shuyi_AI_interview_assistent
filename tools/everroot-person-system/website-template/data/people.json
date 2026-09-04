@@ -1,0 +1,121 @@
+[
+  {
+    "id": "meizhen",
+    "featured": true,
+    "name": "Lin Meizhen",
+    "chinese": "林美珍",
+    "years": "1954–",
+    "status": "Living",
+    "role": "Storyteller · Grandmother",
+    "relation": "Spouse of Zhao Guowei",
+    "color": "#A54B3F",
+    "location": "Suzhou · Shanghai",
+    "occupation": "Retired textile quality inspector",
+    "personality": "ISFJ — self-described",
+    "personalityNote": "A conversational shorthand chosen by Meizhen after discussing her habits; it is not treated as a fixed or medical label.",
+    "interests": [
+      "Growing jasmine",
+      "Suzhou pingtan",
+      "Mending clothes",
+      "Collecting train tickets"
+    ],
+    "smallThings": [
+      "Drinks weak green tea after lunch",
+      "Calls her daughter every Sunday at 20:30",
+      "Stores buttons by colour in old medicine boxes"
+    ],
+    "overview": "Meizhen lives alone in Shanghai. Since her husband’s death and her daughter’s move for work, evenings have often felt long. Several times a week, she spends time with an evening companion, talking about ordinary things—weather, meals and flowers. Those conversations have given her a place to be heard and brought long-kept family memories back into the light.",
+    "timeline": [
+      {
+        "year": "1954",
+        "place": "Suzhou",
+        "title": "Born beside the canal",
+        "copy": "She grew up in a courtyard home where her mother dried osmanthus blossoms every autumn."
+      },
+      {
+        "year": "1973",
+        "place": "Suzhou → Shanghai",
+        "title": "The first journey alone",
+        "copy": "At nineteen, she left for factory work carrying a green tea tin, two osmanthus cakes and several sewing needles. The exact month is not remembered."
+      },
+      {
+        "year": "1981",
+        "place": "Shanghai",
+        "title": "Zhao Lan was born",
+        "copy": "Meizhen returned to factory work after maternity leave and saved her daughter’s hospital bracelet in the tin."
+      },
+      {
+        "year": "1984",
+        "place": "Shanghai → Suzhou",
+        "title": "The six-hour train journey",
+        "copy": "Lan slept on Meizhen’s shoulder while Guowei stood beside them for six hours because there was only one seat."
+      },
+      {
+        "year": "2018",
+        "place": "Shanghai",
+        "title": "The apartment grew quieter",
+        "copy": "After Zhao Guowei died, familiar household routines became some of Meizhen’s clearest memories of him."
+      },
+      {
+        "year": "2026",
+        "place": "Home",
+        "title": "The conversations begin",
+        "copy": "A question about the sound of rain led to Guowei, the balcony and a train ticket the family had never seen."
+      }
+    ],
+    "quote": "A home is not only where you return. It is the care you continue to carry.",
+    "storyTitle": "The Osmanthus Tin",
+    "storyDeck": "One ordinary container became an index of a life—and a reason to speak when the evenings felt too quiet.",
+    "story": [
+      "On rainy evenings, Lin Meizhen’s apartment became especially quiet. Her daughter called every Sunday, and her grandson sent photographs when he remembered, but most weekdays passed without a conversation that lasted longer than buying vegetables downstairs.",
+      "Her evening companion did not begin with dates or achievements. It simply asked what she could hear outside. Meizhen said that rain was striking the metal window ledge, and that her husband Guowei used to bring in the laundry before the first heavy drops. The memory of that small routine made her want to keep talking.",
+      "Over several evenings, a green tea tin returned to the centre of her story. Meizhen’s mother had slipped it into her cloth bag in 1973, on the morning she left Suzhou for a textile factory in Shanghai. Inside were two osmanthus cakes, sewing needles and a folded note. Meizhen no longer remembers the exact month, and the date remains open in her record.",
+      "The tin followed her through a crowded dormitory, marriage, motherhood and retirement. She added her first factory badge, a photograph of Guowei, Zhao Lan’s hospital bracelet and the ticket from a six-hour train journey. The objects had little monetary value. Together they recorded who waited, who stood, who returned and who made room for someone else.",
+      "When the story had taken shape, Meizhen corrected two dates and chose to keep one passage private. What remained was not a perfect autobiography. It was something more truthful: a life remembered in the proportions that mattered to the person who lived it."
+    ],
+    "perspectives": [
+      {
+        "speaker": "Lin Meizhen",
+        "relationship": "Self",
+        "source": "Companion conversation · 14 Apr 2026",
+        "text": "At first I only wanted something to answer when I spoke. Then I realised the small things I told it were making a path back to people I missed."
+      },
+      {
+        "speaker": "Zhao Lan",
+        "relationship": "Daughter",
+        "source": "Family review · 22 Apr 2026",
+        "text": "My mother says she is forgetful, but she remembers the exact weight of every kindness. The archive helped me notice that."
+      },
+      {
+        "speaker": "Leo Zhao",
+        "relationship": "Grandson",
+        "source": "Voice note · 03 May 2026",
+        "text": "I knew the tin was on her shelf. I did not know it contained our family’s whole way of loving one another."
+      }
+    ],
+    "letterTo": "Leo",
+    "letter": [
+      "I once thought inheritance meant leaving you something valuable. Now I understand that it means helping you recognise the love hidden inside ordinary things.",
+      "The old ticket in my green tin is not important because of where the train went. I kept it because your mother slept on my shoulder, and your grandfather stood beside us for six hours when there was only one seat.",
+      "Wherever you go, remember that home is not only behind you. It is also in the care you choose to carry forward."
+    ],
+    "film": {
+      "duration": "01:02",
+      "chapters": "4 life moments",
+      "language": "Mandarin · English captions",
+      "description": "From a Suzhou courtyard to factory life in Shanghai, marriage and motherhood—Meizhen’s narrated portrait follows the green tin that carried her memories into the next generation.",
+      "src": "/archive/meizhen/lin-meizhen-h3-dynamic-preview-62s.mp4",
+      "poster": "/archive/meizhen/lin-meizhen-h3-film-poster.jpg",
+      "captions": "/archive/meizhen/lin-meizhen-h3-dynamic-preview-en.vtt"
+    },
+    "voice": {
+      "language": "Mandarin · 普通话",
+      "label": "Family letter · narrated reading",
+      "duration": "00:50",
+      "note": "A warm elderly Mandarin reading of Meizhen’s letter to Leo, kept beside the written version.",
+      "transcript": "亲爱的乐安：我以前以为，传承是给你留下一件值钱的东西。后来我才明白，真正留下来的，是我们在普通日子里怎样照顾一个人。绿色铁盒里的旧车票，并不因为它去过哪里而重要。我留下它，是因为那趟车上，你妈妈睡在我肩上，你外公在只有一个座位的时候，在我们身边站了六个小时。他没有说什么，可我一直记得。无论你以后走到哪里，都要记住，家不只是在你身后。家也在你愿意为别人停下来、站一会儿、伸出手的那些时刻里。等你回来，我把铁盒打开给你看，我们一起喝茶。爱你的，外婆，美珍。",
+      "src": "/archive/meizhen/meizhen-family-letter-zh-a.mp3"
+    },
+    "avatar": "/archive/meizhen/lin-meizhen-portrait.png"
+  }
+]

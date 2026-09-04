@@ -202,3 +202,12 @@ class DocumentService:
         self.db.commit()
         self.db.refresh(doc)
         return _document_to_dict(doc)
+
+    def publish_document(self, document_id: int) -> dict:
+        doc = self.db.get(Document, document_id)
+        if not doc or doc.status == "deleted":
+            raise ValueError("Document not found")
+        doc.status = "published"
+        self.db.commit()
+        self.db.refresh(doc)
+        return _document_to_dict(doc)

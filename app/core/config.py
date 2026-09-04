@@ -20,8 +20,12 @@ class Settings(BaseSettings):
     media_storage_dir: str = "./uploads"
     public_base_url: str = "http://127.0.0.1:8000"
 
-    # CORS（逗号分隔的允许来源列表）
-    allowed_origins: str = "http://localhost:3000"
+    # CORS（逗号分隔的允许来源列表）。开发期覆盖 Vinext/Vite 常见端口，上线前收紧为正式域名。
+    allowed_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:5173,http://127.0.0.1:5173,"
+        "http://localhost:4173,http://127.0.0.1:4173"
+    )
 
     # 破坏性接口开关（生产环境应关闭）
     enable_destructive_endpoints: bool = False

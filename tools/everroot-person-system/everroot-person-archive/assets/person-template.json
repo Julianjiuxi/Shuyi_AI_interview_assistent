@@ -1,0 +1,48 @@
+{
+  "id": "sample-person",
+  "featured": true,
+  "name": "Verified display name",
+  "chinese": "中文名",
+  "years": "Birth year–",
+  "status": "Living",
+  "role": "Family role",
+  "relation": "Relationship description",
+  "color": "#A54B3F",
+  "avatarFile": "media/portrait.png",
+  "location": "Verified places",
+  "occupation": "Verified occupation",
+  "personality": "Self-description or family impression",
+  "personalityNote": "Explain who supplied this label and that it is not a clinical finding.",
+  "interests": ["Verified interest"],
+  "smallThings": ["Specific remembered habit"],
+  "overview": "Two or three factual sentences describing the person and the context of the archive.",
+  "timeline": [
+    { "year": "Verified year", "place": "Verified place", "title": "Short event title", "copy": "Factual description with uncertainty kept visible." }
+  ],
+  "quote": "Approved direct quotation",
+  "storyTitle": "Story title",
+  "storyDeck": "One-sentence story introduction.",
+  "story": ["Reviewed story paragraph."],
+  "perspectives": [
+    { "speaker": "Speaker name", "relationship": "Relationship", "source": "Source and date", "text": "Approved perspective." }
+  ],
+  "letterTo": "Addressee",
+  "letter": ["Reviewed family-letter paragraph."],
+  "film": {
+    "sourceFile": "media/life-film.mp4",
+    "posterFile": "media/life-film-poster.jpg",
+    "captionsFile": "media/life-film-en.vtt",
+    "duration": "01:00",
+    "chapters": "6 life moments",
+    "language": "Mandarin · English captions",
+    "description": "A concise audience-facing description of this life film."
+  },
+  "voice": {
+    "language": "Mandarin · 普通话",
+    "label": "Family letter · narrated reading",
+    "duration": "00:50",
+    "note": "A concise audience-facing description of the recording.",
+    "sourceFile": "media/family-letter.mp3",
+    "transcript": "Approved transcript."
+  }
+}

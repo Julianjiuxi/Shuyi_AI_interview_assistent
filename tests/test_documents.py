@@ -1,4 +1,4 @@
-from app.models.entities import BiographyProject, Memory
+from app.models.entities import BiographyProject, Document, Memory
 from app.models.schemas import DocumentGenerateRequest
 from app.services.document_service import DocumentService
 
@@ -51,3 +51,17 @@ def test_generate_chapter_creates_document(db_session):
     assert result["document_type"] == "chapter"
     assert result["title"] == "章节"
     assert result["source_memory_ids"] == [memory.id]
+
+
+def test_publish_document_moves_to_published(db_session):
+    project = BiographyProject(subject_name="测试")
+    db_session.add(project)
+    db_session.commit()
+    doc = Document(project_id=project.id, document_type="chapter", title="标题", body="正文", status="approved")
+    db_session.add(doc)
+    db_session.commit()
+
+    service = DocumentService(db_session, llm=RecordingLLM({"title": "x", "body": "y"}))
+    result = service.publish_document(doc.id)
+
+    assert result["status"] == "published"
