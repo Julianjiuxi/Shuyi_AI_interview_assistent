@@ -19,6 +19,19 @@ export function getArchiveProvider(): ArchiveDataProvider {
   return dataSource() === 'api' ? shuyiProvider : mockProvider;
 }
 
+/**
+ * Runtime app mode:
+ * - 'DM' (demo/showcase): keep the pre-built Lin Meizhen demo content for the
+ *   archive sections; only the chat is realtime.
+ * - 'RT' (realtime): no demo content. Archive sections appear only when the
+ *   backend has produced (and published) the corresponding content.
+ */
+export type AppMode = 'DM' | 'RT';
+
+export function getProviderForMode(mode: AppMode): ArchiveDataProvider {
+  return mode === 'RT' ? shuyiProvider : mockProvider;
+}
+
 export function getFamilyId(): number {
   const raw = process.env.NEXT_PUBLIC_SHUYI_FAMILY_ID;
   const id = Number(raw ?? '1');

@@ -13,6 +13,12 @@ export function chatGPTSignInPath(returnTo = '/') {
 }
 
 export async function getChatGPTUser(): Promise<ChatGPTUser | null> {
+  // 本地调试旁路：standalone 服务器没有 vinext dev 的本地 sign-in 中间件，
+  // 通过 SITES_LOCAL_AUTH=1 注入一个本地演示用户，避免跳转到登录页。
+  if (process.env.SITES_LOCAL_AUTH === '1') {
+    return { id: 'local_seedy', email: 'seedy@sites.test', name: 'Seedy' };
+  }
+
   const requestHeaders = await headers();
   const id = requestHeaders.get('oai-authenticated-user-id');
   const email = requestHeaders.get('oai-authenticated-user-email');
