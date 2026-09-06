@@ -237,8 +237,7 @@ export interface EverrootArchive {
 const configuredBaseUrl = process.env.NEXT_PUBLIC_SHUYI_API_BASE_URL?.replace(/\/$/, '');
 
 function baseUrl(): string {
-  if (!configuredBaseUrl) throw new Error('ShuYi API is not connected in demo mode.');
-  return configuredBaseUrl;
+  return configuredBaseUrl || 'http://127.0.0.1:8000';
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

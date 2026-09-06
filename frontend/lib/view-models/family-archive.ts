@@ -149,6 +149,8 @@ export type FamilyArchiveViewModel = {
   people: ArchivePersonCard[];
   selectedPerson: PersonArchiveViewModel | null;
   stats: FamilyStats;
+  /** Family-level edges used to lay out the family tree. */
+  relationships: RelationshipViewModel[];
   collections?: CollectionCard[];
   sources?: SourcePill[];
 };

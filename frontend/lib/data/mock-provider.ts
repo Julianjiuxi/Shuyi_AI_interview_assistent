@@ -6,6 +6,7 @@ import type {
   JourneyStop,
   MomentPost,
   PersonArchiveViewModel,
+  RelationshipViewModel,
   SourcePill,
 } from '@/lib/view-models/family-archive';
 import type { ArchiveDataProvider } from './provider';
@@ -55,6 +56,15 @@ const demoSources: SourcePill[] = [
   { icon: 'chat', text: '11 companion conversations' },
   { icon: 'voice', text: '7 voice notes' },
   { icon: 'image', text: '9 reviewed photographs' },
+];
+
+// Family tree edges for the demo family: Guowei & Meizhen (spouses) → Lan
+// (daughter) → Leo (grandson). relationType means `fromProjectId is <type> of
+// toProjectId`, matching the backend RelationshipCreate contract.
+const demoRelationships: RelationshipViewModel[] = [
+  { fromProjectId: 1, toProjectId: 2, relationType: 'spouse', label: 'Husband' },
+  { fromProjectId: 2, toProjectId: 3, relationType: 'parent', label: 'Mother' },
+  { fromProjectId: 3, toProjectId: 4, relationType: 'parent', label: 'Mother' },
 ];
 
 function yearsFor(person: Person): string {
@@ -141,6 +151,7 @@ export const mockProvider: ArchiveDataProvider = {
       people: cards,
       selectedPerson: adaptedPeople.find((p) => p.id === 'meizhen') ?? adaptedPeople[0] ?? null,
       stats: { people: 4, memories: 27, recordings: 2 },
+      relationships: demoRelationships,
       collections: collections as CollectionCard[],
       sources: demoSources,
     };

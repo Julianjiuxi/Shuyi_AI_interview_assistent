@@ -1,0 +1,198 @@
+# ShuYi 前后端启动 / 关闭说明
+
+项目分两个独立进程：
+- 后端：FastAPI（端口 8000），内含 SQLite 数据库（随后端自动加载，无需单独启动）
+- 前端：Everroot（React + Vinext，standalone 模式，端口 3000）
+
+--------------------------------------------------------------------------------
+## 一、模式说明（先看这里）
+
+前端在 welcome 页右上角有 DM / RT 切换按钮（中英切换旁）：
+
+| 模式 | 展示部分 | 对话（聊天）部分 | 是否需要后端 |
+|------|---------|----------------|-------------|
+| DM（展示） | 内置林美珍 Demo（mock） | 实时 | 展示不需要；聊天需要 |
+| RT（实时） | 实时读后端档案 | 实时 | 必须 |
+
+结论：
+- 只想看林美珍展示（DM，不聊天）→ 只需启动前端。
+- 要聊天，或要用 RT 模式 → 必须前后端同时启动。
+- RT 模式下，档案子页面（人生之书/家书/影片等）只有在后端生成并发布后才出现，
+  未生成时隐藏，导航也无法跳转。
+
+重要澄清：前端「聊天框」从不直接调用 DeepSeek。它调用的是后端 8000 的接口
+（/api/projects、/api/interview/turn 等），由后端在服务器端调用 DeepSeek。
+DeepSeek Key 只存在于后端 .env 中。所以聊天功能必然依赖后端进程。
+
+--------------------------------------------------------------------------------
+## 二、一键启动（推荐，前后端 + 数据库一起起）
+
+已提供脚本 `start_all.py`，用一条命令同时拉起后端和前端，Ctrl+C 一起关闭。
+
+```powershell
+D:
+cd D:\桌面\ShuYi
+D:\桌面\python\python.exe start_all.py
+```
+
+- 需要后端热重载（改后端代码自动重载）：`D:\桌面\python\python.exe start_all.py --reload`
+- 浏览器打开 http://localhost:3000
+- 按 Ctrl+C 同时关闭前后端。
+
+脚本会自动：
+1. 选择装了 fastapi/uvicorn 的 Python 环境（默认 `D:\桌面\python`）
+2. 注入 Node 路径，设置 `SITES_LOCAL_AUTH=1` 旁路登录
+3. 启动后端 8000 + 前端 3000，日志带 [backend]/[frontend] 前缀
+
+--------------------------------------------------------------------------------
+## 三、手动分别启动
+
+### 前置准备（首次，之后可跳过）
+
+#### 1. 后端依赖 + .env
+依赖安装在本机 `D:\桌面\python`（不是 `.venv`）。验证：
+```powershell
+D:\桌面\python\python.exe -c "import fastapi, uvicorn, sqlalchemy; print('ok')"
+```
+若报错说明依赖没装，执行：
+```powershell
+D:\桌面\python\python.exe -m pip install -r D:\桌面\ShuYi\requirements.txt
+```
+配置 `.env`（只需一次）：
+```powershell
+D:
+cd D:\桌面\ShuYi
+copy .env.example .env
+```
+`.env` 关键项：`DEEPSEEK_API_KEY`（必填）、`DATABASE_URL=sqlite:///./shuyi.db`、
+`ENABLE_DESTRUCTIVE_ENDPOINTS=true`（开发期开启 /api/reset）。
+
+#### 2. 前端依赖 + .env.local
+```powershell
+D:
+cd D:\桌面\ShuYi\frontend
+$env:Path = "C:\Program Files\nodejs;" + $env:Path   # 新终端必须注入 Node 路径
+npm install
+```
+`frontend/.env.local`（已被 gitignore，手动创建）：
+```bash
+# RT 模式必需：指向后端地址
+NEXT_PUBLIC_SHUYI_API_BASE_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_SHUYI_FAMILY_ID=1
+NEXT_PUBLIC_SHUYI_ARCHIVE_LANGUAGE=zh-CN
+```
+> standalone 模式下改了前端代码或 .env.local，必须重新 `npm run build` 再重启。
+
+### 后端启动（端口 8000）
+```powershell
+D:
+cd D:\桌面\ShuYi
+D:\桌面\python\python.exe -m uvicorn app.main:app --reload
+```
+或直接（uvicorn.exe 已在 PATH）：`uvicorn app.main:app --reload`
+
+验证：
+- 接口文档：http://127.0.0.1:8000/docs
+- 健康检查：http://127.0.0.1:8000/api/health
+- 后端 Dev Console（豆包调试界面）：http://127.0.0.1:8000/
+
+### 后端关闭
+方式 A：运行 uvicorn 的终端按 `Ctrl + C`。
+方式 B：端口清理：
+```powershell
+Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue |
+  Select-Object -ExpandProperty OwningProcess -Unique
+Stop-Process -Id <PID> -Force
+```
+
+### 前端构建（首次 / 改了代码后）
+```powershell
+D:
+cd D:\桌面\ShuYi\frontend
+$env:Path = "C:\Program Files\nodejs;" + $env:Path
+npm run build
+```
+
+### 前端启动（端口 3000）
+```powershell
+D:
+cd D:\桌面\ShuYi\frontend
+$env:Path = "C:\Program Files\nodejs;" + $env:Path
+$env:SITES_LOCAL_AUTH = "1"          # 旁路登录，避免跳 /signin-with-chatgpt 404
+node dist/standalone/server.js
+```
+验证：浏览器打开 http://localhost:3000
+
+### 前端关闭
+方式 A：运行 node 的终端按 `Ctrl + C`。
+方式 B：端口清理：
+```powershell
+Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue |
+  Select-Object -ExpandProperty OwningProcess -Unique
+Stop-Process -Id <PID> -Force
+```
+
+--------------------------------------------------------------------------------
+## 四、RT 模式完整流程（手动开两个终端）
+
+终端 1（后端）：
+```powershell
+D:
+cd D:\桌面\ShuYi
+D:\桌面\python\python.exe -m uvicorn app.main:app --reload
+```
+
+终端 2（前端，需先 build 过）：
+```powershell
+D:
+cd D:\桌面\ShuYi\frontend
+$env:Path = "C:\Program Files\nodejs;" + $env:Path
+$env:SITES_LOCAL_AUTH = "1"
+node dist/standalone/server.js
+```
+
+然后：
+1. 打开 http://localhost:3000
+2. welcome 页右上角点「RT」
+3. 此时无林美珍，只有欢迎页 + 对话区 + 「实时模式」提示
+4. 在对话区创建人物并访谈；生成/发布文稿后，对应子页面才出现
+
+--------------------------------------------------------------------------------
+## 五、常见问题排查
+
+1. `node` / `npm` 找不到 → 每个新终端先执行：
+   `$env:Path = "C:\Program Files\nodejs;" + $env:Path`
+
+2. `cd D:\...` 还在 C 盘 → PowerShell 先切盘符：`D:` 回车后再 cd。
+
+3. `.venv\Scripts\python.exe -m uvicorn` 报 `No module named uvicorn` →
+   本机依赖装在 `D:\桌面\python`，`.venv` 是空的。请用
+   `D:\桌面\python\python.exe -m uvicorn app.main:app --reload`。
+
+4. 3000 / 8000 端口被占（EADDRINUSE）→ 用上面的端口清理命令杀掉旧进程。
+
+5. 前端跳 `/signin-with-chatgpt` 404 → 启动时设了 `$env:SITES_LOCAL_AUTH = "1"`。
+
+6. RT 模式点了没内容 → 确认后端已启动、`.env.local` 配了
+   `NEXT_PUBLIC_SHUYI_API_BASE_URL`，且后端已有（已发布）档案内容。
+
+7. 改了前端代码不生效 → standalone 无热更新，必须 `npm run build` 后重启 `server.js`。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+D:\桌面\python\python.exe start_all.py

@@ -65,7 +65,7 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'chat.eyebrow': 'Interview · Memory · Archive',
     'chat.title': 'Talk to your family. Memories settle automatically.',
     'chat.copy':
-      'Pick or create an interviewee on the left, then chat directly in the middle. The backend extracts memories, asks follow-ups, and drafts the life book. A ShuYi Dev Console test panel is kept on the right.',
+      'Pick or create an interviewee on the left, then chat directly in the middle. The backend extracts memories, asks follow-ups, and drafts the life book. Use the right panel to arrange the family and generate the realtime family view.',
     'chat.refresh': 'Refresh',
     'chat.openTest': 'Open test panel',
     'chat.closeTest': 'Close panel',
@@ -102,7 +102,7 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'chat.placeholder.noProject': 'Select or create a person on the left…',
     'chat.send': 'Send',
     'chat.disclaimer1': 'Using backend {api}. Interview chain runs on deepseek-v4-flash with reasoning disabled, each turn takes about 9s.',
-    'chat.disclaimer2': 'Use the test panel on the right to call every backend endpoint directly.',
+    'chat.disclaimer2': 'Use the right panel to arrange family members and relationships.',
     'chat.test.title': 'API Test Panel',
     'chat.test.closeAria': 'Close',
     'chat.test.tab.family': 'Family',
@@ -157,6 +157,27 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'chat.test.project.row5': 'Session list',
     'chat.test.run': 'Run',
 
+    // Family orchestration panel
+    'chat.openOrchestrate': 'Orchestrate family',
+    'chat.closeOrchestrate': 'Close',
+    'chat.orchestrateToggle': 'Orchestrate',
+    'orch.title': 'Family orchestration',
+    'orch.family.title': 'Family',
+    'orch.family.none': '— no family selected —',
+    'orch.family.newName': 'New family name',
+    'orch.family.create': 'Create',
+    'orch.members.title': 'Members',
+    'orch.members.empty': 'No people created yet. Create one in the left column first.',
+    'orch.members.add': 'Add',
+    'orch.members.inFamily': 'In family',
+    'orch.relationships.title': 'Relationships',
+    'orch.relationships.from': 'From (person)',
+    'orch.relationships.to': 'To (person)',
+    'orch.relationships.add': 'Add relationship',
+    'orch.relationships.empty': 'No relationships yet.',
+    'orch.generate': 'Create family view',
+    'orch.generate.busy': 'Creating…',
+
     // Family section
     'family.eyebrow': 'Generations, in one living archive',
     'family.title': 'One family.\nMany witnesses.',
@@ -183,6 +204,7 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'person.relation.other': 'Family',
     'person.status.living': 'Living',
     'person.status.remembered': 'Remembered',
+    'common.unknown': 'Unknown',
     'person.node.select': 'Select {name}',
     'person.detail.open': 'Open {name}’s full life archive',
 
@@ -322,6 +344,7 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'nav.letter': '家书',
     'nav.voice': '声音',
     'nav.moments': '动态',
+    'common.unknown': '未知',
 
     // App mode (DM / RT)
     'mode.group.aria': '运行模式',
@@ -360,7 +383,7 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'chat.eyebrow': '访谈 · 记忆 · 档案',
     'chat.title': '与家人对话，让记忆自动沉淀',
     'chat.copy':
-      '左边选择或新建访谈人物，中间直接聊天，后端会自动抽取记忆、追问并生成文稿。右侧保留接口测试面板，与豆包 Dev Console 功能一致。',
+      '左边选择或新建访谈人物，中间直接聊天，后端会自动抽取记忆、追问并生成文稿。右侧可编排家庭与关系，并生成实时家庭界面。',
     'chat.refresh': '刷新',
     'chat.openTest': '打开测试面板',
     'chat.closeTest': '收起面板',
@@ -388,7 +411,7 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'chat.chat.emptyCopy':
       '左侧选一个已有传记人物开始访谈；或点击 + 新建，系统会自动开启第一次提问。所有回答会抽取为结构化记忆，并沉淀到家庭档案。',
     'chat.chat.noMessages':
-      '会话尚未开始。选择人物后如出现首问消息，稍等自动加载；若没有，建议在右侧测试面板检查 /api/projects。',
+      '会话尚未开始。选择人物后如出现首问消息，稍等自动加载；若没有，可在右侧面板编排家庭。',
     'chat.chat.role.user': '你',
     'chat.chat.role.ai': 'AI 访谈者',
     'chat.chat.thinking': '正在思考…',
@@ -451,6 +474,27 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'chat.test.project.row4': '归档状态推进',
     'chat.test.project.row5': '会话列表',
     'chat.test.run': '运行',
+
+    // Family orchestration panel
+    'chat.openOrchestrate': '家庭编排',
+    'chat.closeOrchestrate': '收起',
+    'chat.orchestrateToggle': '编排',
+    'orch.title': '家庭编排',
+    'orch.family.title': '家庭',
+    'orch.family.none': '— 未选择家庭 —',
+    'orch.family.newName': '新家庭名称',
+    'orch.family.create': '创建',
+    'orch.members.title': '家庭成员',
+    'orch.members.empty': '还没有人物，请先在左侧创建。',
+    'orch.members.add': '加入',
+    'orch.members.inFamily': '已加入',
+    'orch.relationships.title': '关系',
+    'orch.relationships.from': '起点（人物）',
+    'orch.relationships.to': '终点（人物）',
+    'orch.relationships.add': '添加关系',
+    'orch.relationships.empty': '还没有关系。',
+    'orch.generate': '生成家庭界面',
+    'orch.generate.busy': '生成中…',
 
     'family.eyebrow': '数代人，一份活的档案',
     'family.title': '一个家族，\n被很多人同时见证。',

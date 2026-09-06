@@ -9,6 +9,7 @@ import type {
   FamilyArchiveViewModel,
   FilmViewModel,
   PersonArchiveViewModel,
+  RelationshipViewModel,
   VoiceViewModel,
 } from '@/lib/view-models/family-archive';
 import type { ArchiveDataProvider } from './provider';
@@ -134,6 +135,12 @@ export const shuyiProvider: ArchiveDataProvider = {
   async getFamily(id: number): Promise<FamilyArchiveViewModel> {
     const tree = await shuyiApi.getFamilyTree(id);
     const people = tree.people.map(toCard);
+    const relationships: RelationshipViewModel[] = tree.relationships.map((r) => ({
+      fromProjectId: r.from_project_id,
+      toProjectId: r.to_project_id,
+      relationType: r.relation_type,
+      label: r.label,
+    }));
     const first = tree.people[0];
     const selectedPerson = first
       ? toPerson(await shuyiApi.getArchive(first.project_id, { language: ARCHIVE_LANGUAGE }))
@@ -143,6 +150,7 @@ export const shuyiProvider: ArchiveDataProvider = {
       family: { id: tree.family.id, name: tree.family.name },
       people,
       selectedPerson,
+      relationships,
       // Memories/recordings are not part of the public family-tree contract;
       // leaving them at 0 lets the UI avoid inventing aggregate counts.
       stats: { people: people.length, memories: 0, recordings: 0 },
