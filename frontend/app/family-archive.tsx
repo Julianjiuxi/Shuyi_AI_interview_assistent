@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, BookOpen, CalendarDays, Check, ChevronRight, CircleUserRound, ClipboardList, Film, Flower2, Headphones, Heart, HeartHandshake, Image as ImageIcon, LetterText, MapPin, MessageCircle, MessageCircleMore, Mic2, Navigation, Play, Plus, Quote, Send, Sparkles, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { shuyiApi } from '@/lib/api-contracts';
 import { getFamilyId, getProviderForMode, type AppMode } from '@/lib/data/provider';
 import type { ArchivePersonCard, CollectionCard, FamilyArchiveViewModel, FilmViewModel, MomentPost, PersonArchiveViewModel, RelationshipViewModel } from '@/lib/view-models/family-archive';
 import { useI18n } from '@/lib/i18n';
@@ -17,6 +18,24 @@ function areSpouses(a: ArchivePersonCard, b: ArchivePersonCard, relationships: R
     ((r.fromProjectId === a.projectId && r.toProjectId === b.projectId) ||
      (r.fromProjectId === b.projectId && r.toProjectId === a.projectId)),
   );
+}
+
+function spousePairs(people: ArchivePersonCard[], relationships: RelationshipViewModel[]): ArchivePersonCard[][] {
+  const used = new Set<number>();
+  const pairs: ArchivePersonCard[][] = [];
+  for (let i = 0; i < people.length; i++) {
+    if (used.has(people[i].projectId)) continue;
+    for (let j = i + 1; j < people.length; j++) {
+      if (used.has(people[j].projectId)) continue;
+      if (areSpouses(people[i], people[j], relationships)) {
+        pairs.push([people[i], people[j]]);
+        used.add(people[i].projectId);
+        used.add(people[j].projectId);
+        break;
+      }
+    }
+  }
+  return pairs;
 }
 
 function computeGenerations(people: ArchivePersonCard[], relationships: RelationshipViewModel[]): ArchivePersonCard[][] {
@@ -62,6 +81,8 @@ export default function FamilyArchive({ family }: { family: FamilyArchiveViewMod
   );
   const [selected, setSelected] = useState(family.selectedPerson?.id ?? family.people[0]?.id ?? '');
   const [familyId, setFamilyId] = useState<number>(getFamilyId());
+  const [generatingProjectId, setGeneratingProjectId] = useState<number | null>(null);
+  const [lifeError, setLifeError] = useState<string | null>(null);
   const yearNow = String(new Date().getFullYear());
 
   const loadData = useCallback(async (m: AppMode, fid: number) => {
@@ -102,8 +123,8 @@ export default function FamilyArchive({ family }: { family: FamilyArchiveViewMod
   );
   const uiModeSwitch = (
     <div className="welcome-mode-switch" role="group" aria-label={t('mode.group.aria')}>
-      <button type="button" className={mode === 'DM' ? 'is-active' : ''} onClick={() => setMode('DM')} title={t('mode.dm.label')}>DM</button>
-      <button type="button" className={mode === 'RT' ? 'is-active' : ''} onClick={() => setMode('RT')} title={t('mode.rt.label')}>RT</button>
+      <button type="button" className={mode === 'DM' ? 'is-active' : ''} disabled={loading} onClick={() => setMode('DM')} title={t('mode.dm.label')}>DM</button>
+      <button type="button" className={mode === 'RT' ? 'is-active' : ''} disabled={loading} onClick={() => setMode('RT')} title={t('mode.rt.label')}>RT</button>
     </div>
   );
   const switchers = (
@@ -141,6 +162,20 @@ export default function FamilyArchive({ family }: { family: FamilyArchiveViewMod
     }
   };
 
+  const generateLife = async (projectId: number) => {
+    setGeneratingProjectId(projectId);
+    setLifeError(null);
+    try {
+      await shuyiApi.generateLifeView(projectId, { language: lang === 'zh-CN' ? 'zh-CN' : 'en', only_confirmed_memories: false });
+      const person = await getProviderForMode(mode).getPerson(projectId);
+      setPersons((current) => ({ ...current, [person.id]: person }));
+    } catch (e: any) {
+      setLifeError(e?.message ?? t('life.generate.error'));
+    } finally {
+      setGeneratingProjectId(null);
+    }
+  };
+
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
       <WelcomeCover switcher={switchers} t={t} />
@@ -171,7 +206,7 @@ export default function FamilyArchive({ family }: { family: FamilyArchiveViewMod
         <FamilySection family={data} people={data.people} selected={selected} onSelect={selectPerson} t={t} />
       ) : null}
 
-      {active ? <ProfileSection person={active} t={t} /> : null}
+      {active ? <ProfileSection person={active} t={t} canGenerate={mode === 'RT'} generating={generatingProjectId === active.projectId} error={lifeError} onGenerateLife={generateLife} /> : null}
       {active && active.journey?.length ? <LifeMap person={active} t={t} /> : null}
       {active && active.story?.length ? <StorySection person={active} t={t} /> : null}
       {active && active.film ? <FilmSection person={active} t={t} /> : null}
@@ -196,19 +231,19 @@ function FamilySection({ family, people, selected, onSelect, t }: { family: Fami
           { v: String(stats.memories ?? 0), k: 'family.stats.memories' },
           { v: String(stats.recordings ?? 0), k: 'family.stats.recordings' },
         ].map((stat) => <div key={stat.k} className="rounded-2xl border border-[#ded0bd] bg-[#fffaf0]/55 p-4"><p className="font-serif text-3xl text-[#9c4b40]">{stat.v}</p><p className="mt-2 text-xs leading-5 text-[#877768]">{t(stat.k)}</p></div>)}</div></div>
-        <div className="rounded-[32px] border border-[#d6c6ae] bg-[#fffaf0]/80 p-6 shadow-[0_24px_80px_rgba(92,66,42,.09)] md:p-10"><div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><p className="font-serif text-2xl text-[#3d332b]">{t('family.sources.title')}</p><p className="mt-1 text-xs tracking-wide text-[#8a796a]">{people.length > 0 ? t('family.collections.title') + ' · ' + people.length : ''}</p></div><span className="rounded-full bg-[#e7eee8] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[.14em] text-[#51655b]">{stats.people} profiles{memoriesLabel}</span></div><div className="tree-grid" aria-label="Interactive family tree">{generations.map((generation, gi) => { const isCouple = generation.length === 2 && areSpouses(generation[0], generation[1], family.relationships); return <div className="tree-generation" key={gi}>{gi > 0 ? <div className="tree-line" /> : null}<div className={isCouple ? 'tree-couple' : 'tree-row'}>{generation.map((person) => isCouple ? <PersonNode key={person.id} person={person} selected={selected === person.id} onSelect={onSelect} t={t} /> : <div className="tree-child" key={person.id}><PersonNode person={person} selected={selected === person.id} onSelect={onSelect} t={t} /></div>)}</div></div>; })}</div>{family.sources?.length ? <div className="mt-8 border-t border-[#ded0bd] pt-6"><p className="mb-3 text-[10px] font-semibold uppercase tracking-[.2em] text-[#957c67]">{t('family.sources.title')}</p><div className="flex flex-wrap gap-2 text-xs text-[#65584d]">{family.sources.map((source) => <SourcePill key={source.text} icon={source.icon === 'chat' ? MessageCircleMore : source.icon === 'voice' ? Mic2 : ImageIcon} text={source.text} />)}</div></div> : null}</div>
+        <div className="rounded-[32px] border border-[#d6c6ae] bg-[#fffaf0]/80 p-6 shadow-[0_24px_80px_rgba(92,66,42,.09)] md:p-10"><div className="mb-8 flex flex-wrap items-end justify-between gap-4"><div><p className="font-serif text-2xl text-[#3d332b]">{t('family.sources.title')}</p><p className="mt-1 text-xs tracking-wide text-[#8a796a]">{people.length > 0 ? t('family.collections.title') + ' · ' + people.length : ''}</p></div><span className="rounded-full bg-[#e7eee8] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[.14em] text-[#51655b]">{stats.people} profiles{memoriesLabel}</span></div><div className="tree-grid" aria-label="Interactive family tree">{generations.map((generation, gi) => { const pairs = spousePairs(generation, family.relationships); const paired = new Set(pairs.flat().map((p) => p.projectId)); const singles = generation.filter((p) => !paired.has(p.projectId)); return <div className="tree-generation" key={gi}>{gi > 0 ? <div className="tree-line" /> : null}{pairs.map((pair) => <div className="tree-couple" key={`c-${pair[0].id}-${pair[1].id}`}>{pair.map((person) => <PersonNode key={person.id} person={person} selected={selected === person.id} onSelect={onSelect} t={t} />)}</div>)}{singles.length ? <div className="tree-row">{singles.map((person) => <div className="tree-child" key={person.id}><PersonNode person={person} selected={selected === person.id} onSelect={onSelect} t={t} /></div>)}</div> : null}</div>; })}</div>{family.sources?.length ? <div className="mt-8 border-t border-[#ded0bd] pt-6"><p className="mb-3 text-[10px] font-semibold uppercase tracking-[.2em] text-[#957c67]">{t('family.sources.title')}</p><div className="flex flex-wrap gap-2 text-xs text-[#65584d]">{family.sources.map((source) => <SourcePill key={source.text} icon={source.icon === 'chat' ? MessageCircleMore : source.icon === 'voice' ? Mic2 : ImageIcon} text={source.text} />)}</div></div> : null}</div>
       </div>
     </section>
   );
 }
 
-function ProfileSection({ person, t }: { person: PersonArchiveViewModel; t: (k: string, v?: Record<string, string | number>) => string }) {
+function ProfileSection({ person, t, canGenerate, generating, error, onGenerateLife }: { person: PersonArchiveViewModel; t: (k: string, v?: Record<string, string | number>) => string; canGenerate: boolean; generating: boolean; error?: string | null; onGenerateLife: (projectId: number) => void }) {
   const hasDetails = Boolean(person.interests?.length || person.smallThings?.length || person.personalityNote);
   const hasPerspectives = Boolean(person.perspectives?.length);
   const hasTimeline = person.timeline.length > 0;
   return (
     <section id="profile" className="scroll-mt-20 bg-[#eee4d5] py-20 md:py-28"><div className="mx-auto max-w-7xl px-6">
-      <div className="profile-header grid overflow-hidden rounded-[34px] border border-white/60 bg-[#fbf6ec] shadow-[0_28px_90px_rgba(75,53,37,.13)] lg:grid-cols-[320px_1fr]"><div className="relative min-h-[330px] bg-[#d8c9b4]">{person.avatar ? <img src={person.avatar} alt={`Portrait of ${person.name}`} className="absolute inset-0 size-full object-cover" /> : <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_50%_35%,#f2e9da,transparent_30%),linear-gradient(150deg,#d8cab7,#aa9780)]"><CircleUserRound size={112} strokeWidth={1} className="text-white/80" /></div>}<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#2d2824]/75 to-transparent p-6 pt-20 text-white"><span className="rounded-full border border-white/30 bg-black/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.16em]">{person.status === 'Living' ? t('person.status.living') : t('person.status.remembered')}</span></div></div><div className="p-7 md:p-11"><div className="flex flex-wrap items-start justify-between gap-6"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[#9b4b40]">{t('life.overview.title')}</p><h2 className="mt-3 font-serif text-5xl text-[#392f28]">{person.name || t('common.unknown')}</h2><p className="mt-2 font-serif text-2xl text-[#8c5a4b]">{person.chinese}{person.chinese ? ' · ' : ''}{person.years || t('common.unknown')}</p></div>{person.role ? <div className="rounded-2xl border border-[#d8c8b2] bg-[#f5ecdd] px-4 py-3 text-right"><p className="text-[10px] uppercase tracking-[.17em] text-[#927d69]">{t('family.sources.title')}</p><p className="mt-1 text-sm font-medium text-[#52453a]">{person.role}</p></div> : null}</div>{person.overview ? <p className="mt-7 max-w-3xl text-base leading-8 text-[#65574c]">{person.overview}</p> : null}<div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{person.relation ? <Info label={t('person.relation.other')} value={person.relation} /> : null}{person.location ? <Info label={t('life.hometown.based')} value={person.location} /> : null}{person.occupation ? <Info label={t('family.stats.recordings')} value={person.occupation} /> : null}{person.personality ? <Info label={t('life.character.title')} value={person.personality} /> : null}</div></div></div>
+      <div className="profile-header grid overflow-hidden rounded-[34px] border border-white/60 bg-[#fbf6ec] shadow-[0_28px_90px_rgba(75,53,37,.13)] lg:grid-cols-[320px_1fr]"><div className="relative min-h-[330px] bg-[#d8c9b4]">{person.avatar ? <img src={person.avatar} alt={`Portrait of ${person.name}`} className="absolute inset-0 size-full object-cover" /> : <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_50%_35%,#f2e9da,transparent_30%),linear-gradient(150deg,#d8cab7,#aa9780)]"><CircleUserRound size={112} strokeWidth={1} className="text-white/80" /></div>}<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#2d2824]/75 to-transparent p-6 pt-20 text-white"><span className="rounded-full border border-white/30 bg-black/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[.16em]">{person.status === 'Living' ? t('person.status.living') : t('person.status.remembered')}</span></div></div><div className="p-7 md:p-11"><div className="flex flex-wrap items-start justify-between gap-6"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-[#9b4b40]">{t('life.overview.title')}</p><h2 className="mt-3 font-serif text-5xl text-[#392f28]">{person.name || t('common.unknown')}</h2><p className="mt-2 font-serif text-2xl text-[#8c5a4b]">{person.chinese}{person.chinese ? ' · ' : ''}{person.years || t('common.unknown')}</p>{canGenerate ? <div className="mt-4 flex flex-wrap items-center gap-2"><button type="button" onClick={() => onGenerateLife(person.projectId)} disabled={generating} className="inline-flex items-center gap-2 rounded-full border border-[#b8aa94] bg-[#f5ecdd] px-4 py-2 text-xs font-semibold text-[#5a463a] transition hover:bg-[#ecdfcc] disabled:opacity-60"><Sparkles size={14} />{generating ? t('life.generate.busy') : t('life.generate')}</button>{person.lifeIsDraft ? <span className="rounded-full bg-[#f3e3c8] px-3 py-1 text-[11px] font-medium text-[#8a5a3a]">{t('life.draft')}</span> : null}</div> : null}{error ? <p className="mt-3 text-sm text-red-700">{error}</p> : null}</div>{person.role ? <div className="rounded-2xl border border-[#d8c8b2] bg-[#f5ecdd] px-4 py-3 text-right"><p className="text-[10px] uppercase tracking-[.17em] text-[#927d69]">{t('family.sources.title')}</p><p className="mt-1 text-sm font-medium text-[#52453a]">{person.role}</p></div> : null}</div>{person.overview ? <p className="mt-7 max-w-3xl text-base leading-8 text-[#65574c]">{person.overview}</p> : null}<div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{person.relation ? <Info label={t('person.relation.other')} value={person.relation} /> : null}{person.location ? <Info label={t('life.hometown.based')} value={person.location} /> : null}{person.occupation ? <Info label={t('family.stats.recordings')} value={person.occupation} /> : null}{person.personality ? <Info label={t('life.character.title')} value={person.personality} /> : null}</div></div></div>
       {(hasDetails || hasPerspectives || hasTimeline) && <div className="mt-8 grid gap-8 lg:grid-cols-[.85fr_1.15fr]"><aside className="space-y-8">{hasDetails ? <section className="archive-card"><SectionLabel icon={Sparkles} text={t('life.character.title')} /><h3 className="font-serif text-2xl text-[#42362e]">The texture of an ordinary life</h3><p className="mt-3 text-xs leading-5 text-[#8a796b]">{t('life.character.empty')}</p>{person.interests?.length ? <><h4 className="detail-heading">{t('life.interests.title')}</h4><div className="flex flex-wrap gap-2">{person.interests.map((item) => <span key={item} className="detail-chip">{item}</span>)}</div></> : null}{person.smallThings?.length ? <><h4 className="detail-heading">{t('life.interests.title')}</h4><ul className="space-y-3">{person.smallThings.map((item) => <li key={item} className="flex gap-3 text-sm leading-6 text-[#65574c]"><span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#a25346]" />{item}</li>)}</ul></> : null}{person.personalityNote ? <p className="mt-6 border-t border-[#ded0bd] pt-5 text-xs italic leading-5 text-[#8a7868]">{t('life.character.note')}：{person.personalityNote}</p> : null}</section> : null}{hasPerspectives ? <section className="archive-card"><SectionLabel icon={Users} text={t('life.perspectives.title')} /><h3 className="font-serif text-2xl text-[#42362e]">No life has one narrator</h3><div className="mt-6 space-y-5">{person.perspectives!.map((view) => <article key={view.speaker} className="perspective"><div className="flex items-baseline justify-between gap-4"><h4 className="font-serif text-lg text-[#493c33]">{view.speaker}</h4><span className="text-[10px] uppercase tracking-[.14em] text-[#9a7d68]">{view.relationship}</span></div><p className="mt-3 text-sm leading-6 text-[#65574c]">“{view.text}”</p><p className="mt-3 text-[10px] tracking-wide text-[#a08c7a]">{t('story.perspectives.source')}：{view.source}</p></article>)}</div></section> : null}</aside>{hasTimeline ? <section className="archive-card"><SectionLabel icon={CalendarDays} text={t('life.timeline.title')} /><div className="flex flex-wrap items-end justify-between gap-4"><div><h3 className="font-serif text-3xl text-[#42362e]">{t('life.timeline.title')}</h3><p className="mt-2 max-w-lg text-sm leading-6 text-[#79695d]">The places, dates and turning points this family wants to remember, with uncertain details left honestly open.</p></div><span className="inline-flex items-center gap-2 rounded-full bg-[#e7eee8] px-3 py-1.5 text-xs text-[#567063]"><Check size={13} /> Kept by the family</span></div><div className="mt-10 space-y-0">{person.timeline.map((item) => <div key={`${person.id}-${item.year}`} className="timeline-item"><div className="timeline-dot" /><div className="pb-10"><div className="mb-2 flex flex-wrap items-center gap-3"><span className="font-serif text-xl text-[#9a4c41]">{item.year}</span><span className="text-[10px] uppercase tracking-[.17em] text-[#9a8877]">{item.place}</span></div><h4 className="font-serif text-xl text-[#45382f]">{item.title}</h4><p className="mt-2 max-w-2xl text-sm leading-7 text-[#79695d]">{item.copy}</p></div></div>)}</div>{person.quote ? <div className="mt-2 rounded-2xl border-l-2 border-[#a95a4d] bg-[#f6ecdf] p-6"><Quote size={20} className="text-[#a95a4d]" /><p className="mt-3 font-serif text-2xl leading-9 text-[#5a463a]">“{person.quote}”</p><p className="mt-3 text-[10px] uppercase tracking-[.17em] text-[#9a8270]">In their own words</p></div> : null}</section> : null}</div>}
     </div></section>
   );
@@ -456,6 +491,7 @@ function ChattingSection({ family, t, onDataChanged }: { family: FamilyArchiveVi
         subject_name: newName.trim(),
         chinese_name: newChinese.trim() || null,
         birth_year: newBirth ? Number(newBirth) : null,
+        family_id: family.family?.id ?? null,
       });
       setNewName(''); setNewChinese(''); setNewBirth(''); setShowCreate(false);
       await reloadProjects();
@@ -751,6 +787,7 @@ function FamilyOrchestrator({
 
   const generate = () => run(async () => {
     if (selectedFamilyId != null) onDataChanged?.(selectedFamilyId);
+    onClose();
   });
 
   return (

@@ -464,6 +464,46 @@ class DocRef(BaseModel):
     body: str
 
 
+# ---- 人生视图 ----
+class PerspectiveOut(BaseModel):
+    speaker: str
+    relationship: str
+    source: str
+    text: str
+
+
+class JourneyStopOut(BaseModel):
+    city: str
+    chinese: str
+    years: str
+    kind: Literal["life", "family"]
+    x: int
+    y: int
+    title: str
+    memory: str
+
+
+class LifeViewOut(BaseModel):
+    role: Optional[str] = None
+    occupation: Optional[str] = None
+    personality: Optional[str] = None
+    personality_note: Optional[str] = None
+    interests: list[str] = Field(default_factory=list)
+    small_things: list[str] = Field(default_factory=list)
+    quote: Optional[str] = None
+    story_title: Optional[str] = None
+    story_deck: Optional[str] = None
+    perspectives: list[PerspectiveOut] = Field(default_factory=list)
+    journey: list[JourneyStopOut] = Field(default_factory=list)
+    is_draft: bool = False
+    generated_at: Optional[datetime] = None
+
+
+class LifeViewGenerateRequest(BaseModel):
+    language: str = "zh-CN"
+    only_confirmed_memories: bool = True
+
+
 class ArchiveOut(BaseModel):
     project: dict
     family: Optional[dict] = None
@@ -474,6 +514,7 @@ class ArchiveOut(BaseModel):
     preserved_quotes: list[dict] = Field(default_factory=list)
     media: dict = Field(default_factory=dict)
     review: dict = Field(default_factory=dict)
+    life_view: Optional[LifeViewOut] = None
     updated_at: Optional[datetime] = None
 
 

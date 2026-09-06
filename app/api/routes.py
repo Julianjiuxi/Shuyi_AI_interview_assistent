@@ -14,6 +14,7 @@ from app.models.entities import (
     InterviewSession,
     MediaAsset,
     Memory,
+    Relationship,
     Utterance,
 )
 from app.models.schemas import (
@@ -188,8 +189,28 @@ def update_project(project_id: int, payload: ProjectUpdate, db: Session = Depend
     project = db.get(BiographyProject, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    for key, value in payload.model_dump(exclude_unset=True).items():
+
+    updates = payload.model_dump(exclude_unset=True)
+    new_family_id = updates.get("family_id")
+    old_family_id = project.family_id
+
+    for key, value in updates.items():
         setattr(project, key, value)
+
+    # 人物迁移到新家庭后，清理其在旧家庭中遗留的关系，避免孤儿关系残留。
+    if new_family_id is not None and new_family_id != old_family_id:
+        stale = db.scalars(
+            select(Relationship).where(
+                Relationship.family_id == old_family_id,
+                (
+                    (Relationship.from_project_id == project_id)
+                    | (Relationship.to_project_id == project_id)
+                ),
+            )
+        ).all()
+        for rel in stale:
+            db.delete(rel)
+
     db.commit()
     db.refresh(project)
     return {

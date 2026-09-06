@@ -63,6 +63,43 @@ def _rel_dict(r: Relationship) -> dict:
     }
 
 
+def _has_parent_path(db: Session, family_id: int, start: int, target: int) -> bool:
+    """start 沿 parent 边向上（祖先方向）能否到达 target。"""
+    stack = [start]
+    visited: set[int] = set()
+    while stack:
+        node = stack.pop()
+        if node == target:
+            return True
+        if node in visited:
+            continue
+        visited.add(node)
+        parents = db.scalars(
+            select(Relationship).where(
+                Relationship.family_id == family_id,
+                Relationship.relation_type == "parent",
+                Relationship.to_project_id == node,
+            )
+        ).all()
+        for p in parents:
+            stack.append(p.from_project_id)
+    return False
+
+
+def _symmetric_exists(db: Session, family_id: int, a: int, b: int, relation_type: str) -> bool:
+    return (
+        db.scalars(
+            select(Relationship).where(
+                Relationship.family_id == family_id,
+                Relationship.relation_type == relation_type,
+                Relationship.from_project_id == b,
+                Relationship.to_project_id == a,
+            )
+        ).first()
+        is not None
+    )
+
+
 @router.post("/families", response_model=FamilyOut, status_code=201)
 def create_family(payload: FamilyCreate, db: Session = Depends(get_db)):
     family = Family(
@@ -203,11 +240,29 @@ def create_relationship(family_id: int, payload: RelationshipCreate, db: Session
     if from_project.family_id != family_id or to_project.family_id != family_id:
         raise ApiError(400, "CROSS_FAMILY", "两个成员必须属于同一家庭")
 
+    from_id = payload.from_project_id
+    to_id = payload.to_project_id
+    relation_type = payload.relation_type
+
+    # 规范化方向：child/grandchild 反转成 parent/grandparent，数据库只保存“长辈→晚辈”方向。
+    if relation_type == "child":
+        from_id, to_id = to_id, from_id
+        relation_type = "parent"
+    elif relation_type == "grandchild":
+        from_id, to_id = to_id, from_id
+        relation_type = "grandparent"
+
+    if relation_type == "parent" and _has_parent_path(db, family_id, from_id, to_id):
+        raise ApiError(400, "PARENT_CYCLE", "该关系会形成代际循环")
+
+    if relation_type in ("spouse", "sibling") and _symmetric_exists(db, family_id, from_id, to_id, relation_type):
+        raise ApiError(409, "DUPLICATE_RELATIONSHIP", "反向的相同关系已存在")
+
     relationship = Relationship(
         family_id=family_id,
-        from_project_id=payload.from_project_id,
-        to_project_id=payload.to_project_id,
-        relation_type=payload.relation_type,
+        from_project_id=from_id,
+        to_project_id=to_id,
+        relation_type=relation_type,
         label=payload.label,
         confirmed=payload.confirmed,
     )

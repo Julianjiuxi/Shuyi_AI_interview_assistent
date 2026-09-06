@@ -124,6 +124,7 @@ export type PersonArchiveViewModel = {
   voice?: VoiceViewModel;
   film?: FilmViewModel;
   journey?: JourneyStop[];
+  lifeIsDraft?: boolean;
   moments?: MomentPost[];
 };
 

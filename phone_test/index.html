@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ShuYi · 电话模式 Demo</title>
+<style>
+  :root {
+    --paper: #fbf3e3;
+    --paper-2: #f5ecdd;
+    --ink: #3f2d22;
+    --ink-soft: #7a614f;
+    --accent: #a4522d;
+    --accent-2: #c8753c;
+    --bg-soft: rgba(245, 236, 221, 0.92);
+    --danger: #b33a3a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--paper); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; }
+  .page { min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; gap: 28px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: 2px; }
+  .sub { color: var(--ink-soft); max-width: 640px; line-height: 1.7; text-align: center; }
+  .chat { width: min(720px, 100%); border: 1px solid #e7d6b8; background: #fffaf0; border-radius: 18px; padding: 16px; min-height: 180px; }
+  .input-wrap { width: min(720px, 100%); display: flex; gap: 8px; align-items: center; border: 1px solid #e7d6b8; border-radius: 999px; background: #fffaf0; padding: 6px 6px 6px 18px; }
+  .input-wrap input { flex: 1; border: 0; outline: none; background: transparent; font-size: 15px; color: var(--ink); padding: 10px 0; }
+  .btn { border: 0; cursor: pointer; border-radius: 999px; padding: 10px 16px; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-send { background: var(--accent); color: #fff; }
+  .btn-phone { background: #3f8e55; color: #fff; }
+  .btn-phone:hover { background: #367948; }
+  .call-mask { position: fixed; inset: 0; background: var(--bg-soft); backdrop-filter: blur(6px); display: none; flex-direction: column; align-items: center; justify-content: space-between; padding: 60px 24px 48px; z-index: 50; }
+  .call-mask.on { display: flex; }
+  .call-top { text-align: center; }
+  .call-title { font-size: 16px; color: var(--ink-soft); letter-spacing: 2px; }
+  .call-subject { font-size: 22px; margin-top: 10px; }
+  .call-timer { margin-top: 6px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .waveform { width: min(560px, 100%); height: 160px; display: block; }
+  .transcript { width: min(720px, 100%); display: flex; flex-direction: column; gap: 10px; max-height: 36vh; overflow: auto; padding: 4px; }
+  .bubble { max-width: 78%; padding: 10px 14px; border-radius: 14px; line-height: 1.6; font-size: 14.5px; word-break: break-word; }
+  .me { align-self: flex-end; background: #f2dfc2; border-bottom-right-radius: 4px; color: #5b3f2a; }
+  .ai { align-self: flex-start; background: #fff; border: 1px solid #e7d6b8; border-bottom-left-radius: 4px; color: var(--ink); }
+  .bubble.provisional { opacity: 0.7; }
+  .call-bottom { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .status { font-size: 13px; color: var(--ink-soft); }
+  .hangup { background: var(--danger); color: #fff; padding: 16px 28px; border-radius: 999px; border: 0; cursor: pointer; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 6px 18px rgba(179,58,58,0.25); }
+  .hangup:hover { background: #9f3030; }
+  .error-note { color: var(--danger); font-size: 13px; min-height: 18px; text-align: center; width: min(720px, 100%); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>ShuYi · 书忆 电话访谈 Demo</h1>
+  <p class="sub">点击右侧绿色电话按钮，进入与 ShuYi AI 访谈员的实时语音通话。谈话规则已对齐 RT 模式纯文字聊天：<b>不做问卷，承接讲述者，轻轻深挖。</b></p>
+
+  <div id="chat" class="chat">
+    <div class="bubble ai"><b>访谈员：</b>您好，请点击下方「🎧 开始通话」。通话时请允许麦克风权限，结束后再点红色挂断。</div>
+  </div>
+
+  <div class="input-wrap">
+    <input id="msgInput" placeholder="这里只是占位，真正的沟通请用上面的电话。" disabled />
+    <button class="btn btn-phone" id="btnCall" type="button">🎧 开始通话</button>
+    <button class="btn btn-send" disabled type="button">发送</button>
+  </div>
+  <div class="error-note" id="errNote"></div>
+</div>
+
+<div class="call-mask" id="callMask">
+  <div class="call-top">
+    <div class="call-title">正在与 ShuYi AI 访谈员通话 · 口述历史模式</div>
+    <div class="call-subject">林美珍 · 1945 · 山东临沂</div>
+    <div class="call-timer" id="timer">00:00</div>
+  </div>
+
+  <canvas class="waveform" id="wave"></canvas>
+
+  <div class="transcript" id="transcript"></div>
+
+  <div class="call-bottom">
+    <div class="status" id="status">连接中…</div>
+    <button class="hangup" id="btnHangup" type="button">📞 挂断</button>
+  </div>
+</div>
+
+<script>
+/* ==============================
+   电话模式 Demo 前端
+   说明：
+   - 通过 FastAPI 中继 ws://localhost:8765/ws/call 连接火山
+   - 浏览器 getUserMedia 采 16kHz Opus，用 FileReader + setInterval 每 20ms 推一包
+   - 从服务器回包中解析 ASR（用户）/ Chat（AI）文本 + OGG Opus 音频直接播放
+   ============================== */
+
+const $ = (s) => document.querySelector(s);
+const btnCall = $('#btnCall');
+const btnHangup = $('#btnHangup');
+const mask = $('#callMask');
+const canvas = $('#wave');
+const ctx = canvas.getContext('2d');
+const transcriptEl = $('#transcript');
+const statusEl = $('#status');
+const errNote = $('#errNote');
+const timerEl = $('#timer');
+
+let ws = null;
+let mediaStream = null;
+let audioCtx = null;
+let analyser = null;
+let rafId = null;
+let timerId = null;
+let startTs = 0;
+let mediaRecorder = null;
+let opusReader = null;
+let audioQueue = [];
+let playingSource = null;
+let provisionalUserBubble = null;
+let lastAiBubble = null;
+
+/* -------- 画布自适应 -------- */
+function fitCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * window.devicePixelRatio;
+  canvas.height = rect.height * window.devicePixelRatio;
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+}
+window.addEventListener('resize', fitCanvas);
+
+/* -------- 计时器 -------- */
+function startTimer() {
+  startTs = Date.now();
+  timerEl.textContent = '00:00';
+  timerId = setInterval(() => {
+    const s = Math.floor((Date.now() - startTs) / 1000);
+    const m = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    timerEl.textContent = `${m}:${ss}`;
+  }, 500);
+}
+function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+
+/* -------- 波形 -------- */
+function drawWave() {
+  if (!analyser) return;
+  const w = canvas.getBoundingClientRect().width;
+  const h = canvas.getBoundingClientRect().height;
+  const bars = 48;
+  const data = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  ctx.clearRect(0, 0, w, h);
+  const step = Math.floor(data.length / bars);
+  const barW = (w / bars) * 0.55;
+  const gap = (w / bars) * 0.45;
+  for (let i = 0; i < bars; i++) {
+    const v = data[i * step] / 255;
+    const bh = Math.max(4, v * h * 0.9);
+    const x = i * (barW + gap) + gap / 2;
+    const y = (h - bh) / 2;
+    const grad = ctx.createLinearGradient(0, y, 0, y + bh);
+    grad.addColorStop(0, '#c8753c');
+    grad.addColorStop(1, '#a4522d');
+    ctx.fillStyle = grad;
+    roundRect(ctx, x, y, barW, bh, barW / 2);
+    ctx.fill();
+  }
+  rafId = requestAnimationFrame(drawWave);
+}
+function roundRect(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+/* -------- 字幕 -------- */
+function appendUser(text, definite) {
+  if (!definite) {
+    if (!provisionalUserBubble) {
+      provisionalUserBubble = document.createElement('div');
+      provisionalUserBubble.className = 'bubble me provisional';
+      transcriptEl.appendChild(provisionalUserBubble);
+    }
+    provisionalUserBubble.innerHTML = '<b>您：</b> ' + escapeHtml(text || '(…)');
+    transcriptEl.scrollTop = transcriptEl.scrollHeight;
+    return;
+  }
+  if (provisionalUserBubble) {
+    provisionalUserBubble.classList.remove('provisional');
+    provisionalUserBubble.innerHTML = '<b>您：</b> ' + escapeHtml(text);
+    provisionalUserBubble = null;
+  } else {
+    const b = document.createElement('div');
+    b.className = 'bubble me';
+    b.innerHTML = '<b>您：</b> ' + escapeHtml(text);
+    transcriptEl.appendChild(b);
+  }
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+function appendAI(text, finalChunk) {
+  if (!lastAiBubble || !lastAiBubble.dataset.continuing) {
+    lastAiBubble = document.createElement('div');
+    lastAiBubble.className = 'bubble ai';
+    lastAiBubble.dataset.continuing = '1';
+    transcriptEl.appendChild(lastAiBubble);
+  }
+  lastAiBubble.innerHTML = '<b>访谈员：</b> ' + escapeHtml(text);
+  if (finalChunk) delete lastAiBubble.dataset.continuing;
+  transcriptEl.scrollTop = transcriptEl.scrollHeight;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function setError(msg) { errNote.textContent = msg || ''; }
+
+/* -------- 音频播放（OGG Opus Blob 队列） -------- */
+async function enqueueAudio(bytes) {
+  const blob = new Blob([bytes], { type: 'audio/ogg; codecs=opus' });
+  audioQueue.push(blob);
+  await pumpAudio();
+}
+async function pumpAudio() {
+  if (playingSource) return;
+  while (audioQueue.length) {
+    const blob = audioQueue.shift();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    playingSource = audio;
+    await new Promise((res) => {
+      audio.onended = res;
+      audio.onerror = () => { URL.revokeObjectURL(url); res(); };
+      audio.play().catch(() => res());
+    });
+    URL.revokeObjectURL(url);
+    playingSource = null;
+  }
+}
+
+/* -------- 主流程 -------- */
+btnCall.addEventListener('click', startCall);
+btnHangup.addEventListener('click', endCall);
+
+async function startCall() {
+  setError('');
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true } });
+  } catch (e) {
+    setError('无法获取麦克风：' + e.message + '。请确认浏览器允许了本站麦克风权限。');
+    return;
+  }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+  const src = audioCtx.createMediaStreamSource(mediaStream);
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 512;
+  src.connect(analyser);
+
+  /* MediaRecorder 录制 Opus in WebM，每 20ms 切一包 */
+  try {
+    if (MediaRecorder.isTypeSupported('audio/webm; codecs=opus')) {
+      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm; codecs=opus', audioBitsPerSecond: 24000 });
+    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+      mediaRecorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm', audioBitsPerSecond: 24000 });
+    } else {
+      mediaRecorder = new MediaRecorder(mediaStream);
+    }
+  } catch (e) {
+    cleanup();
+    setError('浏览器不支持 MediaRecorder：' + e.message);
+    return;
+  }
+
+  let opened = false;
+  try {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}/ws/call`);
+  } catch (e) {
+    cleanup();
+    setError('建立 WebSocket 失败：' + e.message);
+    return;
+  }
+  ws.binaryType = 'arraybuffer';
+
+  ws.addEventListener('open', () => {
+    opened = true;
+    statusEl.textContent = '通话已建立，请开始说话…';
+    mask.classList.add('on');
+    fitCanvas();
+    rafId = requestAnimationFrame(drawWave);
+    startTimer();
+    /* 每 20ms 推一包音频 */
+    mediaRecorder.start(20);
+  });
+
+  const textDecoder = new TextDecoder('utf-8');
+  ws.addEventListener('message', (ev) => {
+    if (ev.data instanceof ArrayBuffer) {
+      /* 二进制：优先当作 TTS 音频（ogg opus）直接 enqueue */
+      const u8 = new Uint8Array(ev.data);
+      if (looksLikeOgg(u8)) {
+        enqueueAudio(u8).catch(() => {});
+      }
+      return;
+    }
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+    if (msg.type === 'error') { statusEl.textContent = '后端出错：' + (msg.detail || ''); return; }
+    const t = msg.type;
+    if (/asr/i.test(t)) {
+      const text = extractText(msg, ['text', 'content', 'utterance', 'asr_text']);
+      if (text) {
+        const definite = /(ended|definite|final)/i.test(t + ' ' + JSON.stringify(msg));
+        appendUser(text, definite);
+      }
+      if (/info/i.test(t)) statusEl.textContent = '听到您的声音…';
+      if (/ended/i.test(t)) statusEl.textContent = 'AI 正在思考…';
+    } else if (/chat/i.test(t)) {
+      const text = extractText(msg, ['text', 'content', 'utterance', 'reply']);
+      const finalChunk = /(ended|final|done)/i.test(t + ' ' + JSON.stringify(msg));
+      if (text) appendAI(text, finalChunk);
+    } else if (/session\.created|session_started/i.test(t)) {
+      statusEl.textContent = '会话已就绪…';
+    } else if (/audio/.test(t) && /state|muted|unmuted/.test(t)) {
+      // 忽略纯音频状态
+    } else {
+      // 其它事件尝试抽文本，避免漏字幕
+      const text = extractText(msg, ['text', 'content']);
+      if (text) appendAI(text, false);
+    }
+  });
+
+  ws.addEventListener('close', () => {
+    statusEl.textContent = '连接已关闭';
+    if (opened) endCall();
+  });
+  ws.addEventListener('error', () => {
+    setError('WebSocket 发生错误（可能 API Key 不正确或网络问题）。');
+  });
+
+  /* MediaRecorder -> 分片发给后端中继 */
+  let lastSendAt = 0;
+  mediaRecorder.addEventListener('dataavailable', async (e) => {
+    if (!e.data || e.data.size === 0) return;
+    if (!ws || ws.readyState !== 1) return;
+    const buf = await e.data.arrayBuffer();
+    try { ws.send(buf); } catch {}
+    const now = performance.now();
+    if (now - lastSendAt > 1200) { lastSendAt = now; }
+  });
+}
+
+function endCall() {
+  try { if (ws && ws.readyState <= 1) ws.send(JSON.stringify({ type: 'session.finish' })); } catch {}
+  cleanup();
+}
+
+function cleanup() {
+  try { if (ws) ws.close(); } catch {}
+  ws = null;
+  try { if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop(); } catch {}
+  mediaRecorder = null;
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+  analyser = null;
+  if (audioCtx) { try { audioCtx.close(); } catch {} audioCtx = null; }
+  stopTimer();
+  audioQueue = [];
+  provisionalUserBubble = null;
+  lastAiBubble = null;
+  mask.classList.remove('on');
+  statusEl.textContent = '';
+}
+
+/* -------- 小工具 -------- */
+function extractText(obj, keys) {
+  if (!obj || typeof obj !== 'object') return '';
+  for (const k of keys) if (typeof obj[k] === 'string' && obj[k]) return obj[k];
+  for (const k of Object.keys(obj)) {
+    if (obj[k] && typeof obj[k] === 'object') { const sub = extractText(obj[k], keys); if (sub) return sub; }
+  }
+  return '';
+}
+function looksLikeOgg(u8) {
+  return u8.length >= 4 && u8[0] === 0x4f && u8[1] === 0x67 && u8[2] === 0x67 && u8[3] === 0x53;
+}
+</script>
+</body>
+</html>

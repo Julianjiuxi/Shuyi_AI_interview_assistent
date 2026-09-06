@@ -175,8 +175,8 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'orch.relationships.to': 'To (person)',
     'orch.relationships.add': 'Add relationship',
     'orch.relationships.empty': 'No relationships yet.',
-    'orch.generate': 'Create family view',
-    'orch.generate.busy': 'Creating…',
+    'orch.generate': 'Done & view family tree',
+    'orch.generate.busy': 'Finishing…',
 
     // Family section
     'family.eyebrow': 'Generations, in one living archive',
@@ -232,6 +232,10 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'life.character.title': 'Personality',
     'life.hometown.title': 'Places & Roots',
     'life.interests.title': 'Interests & Small Things',
+    'life.generate': 'Generate life view',
+    'life.generate.busy': 'Generating…',
+    'life.draft': 'AI draft · not yet reviewed',
+    'life.generate.error': 'Unable to generate life view.',
 
     // Journey / LifeMap
     'journey.eyebrow': 'A life, drawn in places',
@@ -493,8 +497,8 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'orch.relationships.to': '终点（人物）',
     'orch.relationships.add': '添加关系',
     'orch.relationships.empty': '还没有关系。',
-    'orch.generate': '生成家庭界面',
-    'orch.generate.busy': '生成中…',
+    'orch.generate': '完成并查看族谱',
+    'orch.generate.busy': '完成中…',
 
     'family.eyebrow': '数代人，一份活的档案',
     'family.title': '一个家族，\n被很多人同时见证。',
@@ -545,6 +549,10 @@ export const DICT: Record<UILang, Record<string, string>> = {
     'life.character.title': '性格特质',
     'life.hometown.title': '故土与归宿',
     'life.interests.title': '热爱与小事',
+    'life.generate': '生成人生视图',
+    'life.generate.busy': '生成中…',
+    'life.draft': 'AI 草稿 · 尚未审核',
+    'life.generate.error': '无法生成人生视图。',
 
     'journey.eyebrow': '一辈子，画在去过的地方',
     'journey.title': '他们住过的每一个地方，\n汇成同一张地图。',

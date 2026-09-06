@@ -15,6 +15,7 @@ from app.models.entities import (
     Relationship,
     Utterance,
 )
+from app.services.life_profile_service import LifeProfileService
 
 
 def _load_json(text: str) -> list:
@@ -208,6 +209,7 @@ class ArchiveService:
             "preserved_quotes": [],
             "media": media,
             "review": review,
+            "life_view": LifeProfileService(self.db).get(project_id),
             "updated_at": project.updated_at,
         }
 

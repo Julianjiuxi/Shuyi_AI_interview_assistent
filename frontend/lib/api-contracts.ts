@@ -194,6 +194,40 @@ export interface ShuYiMediaJob {
   updated_at: string | null;
 }
 
+export interface LifePerspective {
+  speaker: string;
+  relationship: string;
+  source: string;
+  text: string;
+}
+
+export interface LifeJourneyStop {
+  city: string;
+  chinese: string;
+  years: string;
+  kind: 'life' | 'family';
+  x: number;
+  y: number;
+  title: string;
+  memory: string;
+}
+
+export interface LifeView {
+  role: string | null;
+  occupation: string | null;
+  personality: string | null;
+  personality_note: string | null;
+  interests: string[];
+  small_things: string[];
+  quote: string | null;
+  story_title: string | null;
+  story_deck: string | null;
+  perspectives: LifePerspective[];
+  journey: LifeJourneyStop[];
+  is_draft: boolean;
+  generated_at: string | null;
+}
+
 export interface ShuYiArchive {
   project: Record<string, unknown> & { id: number; family_id: number | null; display_name: string | null; chinese_name: string | null; archive_status: ArchiveStatus };
   family: { id: number; name: string } | null;
@@ -204,6 +238,7 @@ export interface ShuYiArchive {
   preserved_quotes: Array<Record<string, unknown>>;
   media: { avatar: string | null; images: ShuYiMediaAsset[]; audio: ShuYiMediaAsset[]; videos: ShuYiMediaAsset[] };
   review: { unconfirmed_memory_count: number; unresolved_points: Array<{ memory_id: number; point: string }> };
+  life_view: LifeView | null;
   updated_at: string | null;
   transcript?: Array<{ id: number; role: string; text: string; created_at: string }>;
 }
@@ -265,6 +300,7 @@ export const shuyiApi = {
     return request<ShuYiArchive>(`/api/projects/${projectId}/archive?${params}`);
   },
   getArchiveStatus: (projectId: number) => request<ShuYiArchiveStatus>(`/api/projects/${projectId}/archive/status`),
+  generateLifeView: (projectId: number, input: { language?: string; only_confirmed_memories?: boolean }) => request<LifeView>(`/api/projects/${projectId}/life-view/generate`, { method: 'POST', body: JSON.stringify(input) }),
   listMemories: (projectId: number) => request<ShuYiExtractedMemory[]>(`/api/projects/${projectId}/memories?sort=chronological`),
   updateMemory: (memoryId: number, changes: Partial<ShuYiExtractedMemory>) => request<ShuYiExtractedMemory>(`/api/memories/${memoryId}`, { method: 'PATCH', body: JSON.stringify(changes) }),
   confirmMemory: (memoryId: number, confirmedBy = '', reviewNote = '') => request<ShuYiExtractedMemory>(`/api/memories/${memoryId}/confirm`, { method: 'POST', body: JSON.stringify({ confirmed_by: confirmedBy, review_note: reviewNote }) }),

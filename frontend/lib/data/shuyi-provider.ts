@@ -92,6 +92,7 @@ function toPerson(archive: ShuYiArchive): PersonArchiveViewModel {
   const story = archive.featured_story;
   const letter = archive.family_letter;
   const quote = archive.preserved_quotes?.[0];
+  const life = archive.life_view;
 
   return {
     projectId: project.id,
@@ -121,13 +122,41 @@ function toPerson(archive: ShuYiArchive): PersonArchiveViewModel {
       videos: archive.media.videos.map((asset) => asset.url),
     },
     unresolvedCount: archive.review?.unconfirmed_memory_count ?? 0,
-    storyTitle: story?.title,
+    role: life?.role || undefined,
+    occupation: life?.occupation || undefined,
+    personality: life?.personality || undefined,
+    personalityNote: life?.personality_note || undefined,
+    interests: life?.interests?.length ? life.interests : undefined,
+    smallThings: life?.small_things?.length ? life.small_things : undefined,
+    storyTitle: life?.story_title || story?.title,
+    storyDeck: life?.story_deck || undefined,
     story: story?.body ? splitParagraphs(story.body) : undefined,
+    perspectives: life?.perspectives?.length
+      ? life.perspectives.map((p) => ({
+          speaker: p.speaker,
+          relationship: p.relationship,
+          source: p.source,
+          text: p.text,
+        }))
+      : undefined,
     letterTo: undefined,
     letter: letter?.body ? splitParagraphs(letter.body) : undefined,
     voice: toVoice(archive.media.audio[0]),
     film: toFilm(archive.media.videos[0]),
-    quote: quote ? String((quote as { text?: string }).text ?? '') || undefined : undefined,
+    journey: life?.journey?.length
+      ? life.journey.map((stop) => ({
+          city: stop.city,
+          chinese: stop.chinese,
+          years: stop.years,
+          kind: stop.kind,
+          x: stop.x,
+          y: stop.y,
+          title: stop.title,
+          memory: stop.memory,
+        }))
+      : undefined,
+    quote: life?.quote || (quote ? String((quote as { text?: string }).text ?? '') || undefined : undefined),
+    lifeIsDraft: life?.is_draft ?? false,
   };
 }
 

@@ -66,6 +66,7 @@ class BiographyProject(Base):
     documents: Mapped[list[Document]] = relationship(back_populates="project", cascade="all, delete-orphan")
     media_jobs: Mapped[list[MediaJob]] = relationship(back_populates="project", cascade="all, delete-orphan")
     media_assets: Mapped[list[MediaAsset]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    life_profile: Mapped[Optional[LifeProfile]] = relationship(back_populates="project", cascade="all, delete-orphan", uselist=False)
 
 
 class Relationship(Base):
@@ -216,3 +217,21 @@ class MediaAsset(Base):
 
     project: Mapped[BiographyProject] = relationship(back_populates="media_assets")
     job: Mapped[Optional[MediaJob]] = relationship(back_populates="assets")
+
+
+class LifeProfile(Base):
+    """1:1 缓存由 LLM 归纳生成的人生视图（画像/金句/视角/地图）。"""
+
+    __tablename__ = "life_profiles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("biography_projects.id"), unique=True, index=True)
+    profile_json: Mapped[str] = mapped_column(Text, default="{}")
+    language: Mapped[str] = mapped_column(String(16), default="zh-CN")
+    model_provider: Mapped[str] = mapped_column(String(60), default="deepseek")
+    model_name: Mapped[str] = mapped_column(String(100), default="")
+    prompt_version: Mapped[str] = mapped_column(String(40), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    project: Mapped[BiographyProject] = relationship(back_populates="life_profile")

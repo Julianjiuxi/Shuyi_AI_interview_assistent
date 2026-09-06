@@ -54,7 +54,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 def _include_routers() -> None:
-    from app.api import archives, documents, families, files, media, memories, routes
+    from app.api import archives, documents, families, files, life, media, memories, routes
 
     app.include_router(routes.router, prefix="/api")
     app.include_router(families.router, prefix="/api")
@@ -63,6 +63,7 @@ def _include_routers() -> None:
     app.include_router(archives.router, prefix="/api")
     app.include_router(media.router, prefix="/api")
     app.include_router(files.router, prefix="/api")
+    app.include_router(life.router, prefix="/api")
 
 
 _include_routers()
