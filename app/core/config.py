@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     minimax_speech_model: str = "speech-2.8-hd"
     minimax_video_model: str = "MiniMax-H3"
 
+    # 火山引擎端到端实时语音（全双工 3.0 Seeduplex）
+    volc_duplex_api_key: str = ""
+    volc_duplex_voice: str = "zh_male_yunzhou_jupiter_bigtts"
+
     # 存储与公开地址
     media_storage_dir: str = "./uploads"
     public_base_url: str = "http://127.0.0.1:8000"

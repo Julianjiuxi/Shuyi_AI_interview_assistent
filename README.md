@@ -19,6 +19,7 @@
 - **确定性访谈规划评分层**（不依赖 LLM，结果可解释、可调优）。
 - **全链路中文约束**：提问、记忆标题/内容、传记标题/正文均强制简体中文。
 - **低延迟访谈链路**：访谈与记忆抽取使用 `deepseek-v4-flash` 并关闭推理模式（thinking），单轮约 9 秒。
+- **端到端实时语音通话**：基于火山引擎全双工 3.0（Seeduplex）。RT 模式下在「发送」按钮下方点击绿色「开始通话」，前端采集 16k PCM16 单声道音频并经后端 WebSocket 中继注入 `X-Api-Key`，实时返回 ASR 字幕与 TTS 流式音频；访谈人格与文字聊天共用同一套规则。挂断后转录自动写入当前访谈会话的 `Utterance`（`storyteller`/`interviewer`），并对受访者语句调用 Memory Extractor 抽取结构化记忆，前端挂断后自动刷新聊天框以回显本轮语音对话。
 
 ## MVP 流程
 
@@ -97,6 +98,7 @@ NEXT_PUBLIC_SHUYI_ARCHIVE_LANGUAGE=zh-CN
 - Python 3.10+
 - 一个有效的 DeepSeek API Key
 - （可选）MiniMax API Key，用于媒体生成
+- （可选）火山引擎 API Key，用于端到端实时语音通话
 - （前端）Node >= 22.13.0
 
 ## Quick Start
@@ -141,6 +143,10 @@ DATABASE_URL=sqlite:///./shuyi.db
 # MiniMax 媒体生成（key 由前端同学提供；留空则媒体接口报错或走 Mock）
 MINIMAX_API_KEY=
 ENABLE_MOCK_MEDIA=false
+
+# 火山引擎端到端实时语音（全双工 3.0 Seeduplex；留空则语音通话报错）
+VOLC_DUPLEX_API_KEY=
+VOLC_DUPLEX_VOICE=zh_male_yunzhou_jupiter_bigtts
 
 # 开发期设为 true 以启用 /api/reset；生产环境必须设为 false
 ENABLE_DESTRUCTIVE_ENDPOINTS=true
@@ -544,6 +550,8 @@ pytest -q
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | CORS 允许来源（逗号分隔） |
 | `ENABLE_DESTRUCTIVE_ENDPOINTS` | `false` | 是否启用 `/api/reset`（开发 true） |
 | `ENABLE_MOCK_MEDIA` | `false` | 无 key 时媒体生成走 Mock 占位 |
+| `VOLC_DUPLEX_API_KEY` | 空 | 火山引擎端到端实时语音 API Key |
+| `VOLC_DUPLEX_VOICE` | `zh_male_yunzhou_jupiter_bigtts` | 语音通话 TTS 音色 |
 
 > 访谈链路的 DeepSeek 请求已关闭推理模式（thinking），并严格控制 `max_tokens`（记忆抽取 900、规划器 800），以换取低延迟。
 
@@ -559,7 +567,7 @@ pytest -q
 ## 后续建议
 
 1. 用 5-10 次真实模拟访谈调优提示词。
-2. 文本链路稳定后，接入语音转文字（前端已预留语音输入/输出接口）。
+2. 语音通话已接入（火山全双工），语音转录结果已写入 `Utterance` 并复用 Memory Extractor 抽取 `Memory`，与文字访谈共享同一记忆层；下一步可探索 Push-to-talk 或豆包 ASR 等更多输入方式。
 3. 需要账号或多设备使用时，将 SQLite 替换为 Supabase / PostgreSQL。
 4. 媒体任务 MVP 使用 FastAPI `BackgroundTasks`，生产环境建议迁移到 Redis + Celery。
 5. 增加账号体系与审批流（当前无鉴权，所有接口直接可用）。

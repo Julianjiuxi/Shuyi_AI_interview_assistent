@@ -1,13 +1,14 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDown, BookOpen, CalendarDays, Check, ChevronRight, CircleUserRound, ClipboardList, Film, Flower2, Headphones, Heart, HeartHandshake, Image as ImageIcon, LetterText, MapPin, MessageCircle, MessageCircleMore, Mic2, Navigation, Play, Plus, Quote, Send, Sparkles, Users, X } from 'lucide-react';
+import { ArrowDown, BookOpen, CalendarDays, Check, ChevronRight, CircleUserRound, ClipboardList, Film, Flower2, Headphones, Heart, HeartHandshake, Image as ImageIcon, LetterText, MapPin, MessageCircle, MessageCircleMore, Mic2, Navigation, Phone, PhoneOff, Play, Plus, Quote, Send, Sparkles, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { shuyiApi } from '@/lib/api-contracts';
 import { getFamilyId, getProviderForMode, type AppMode } from '@/lib/data/provider';
 import type { ArchivePersonCard, CollectionCard, FamilyArchiveViewModel, FilmViewModel, MomentPost, PersonArchiveViewModel, RelationshipViewModel } from '@/lib/view-models/family-archive';
 import { useI18n } from '@/lib/i18n';
 import { useMode } from '@/lib/mode';
+import { VoiceCallOverlay } from '@/components/voice-call';
 
 const API_BASE = process.env.NEXT_PUBLIC_SHUYI_API_BASE_URL ?? 'http://127.0.0.1:8000';
 const API = API_BASE.replace(/\/$/, '');
@@ -442,6 +443,10 @@ function ChattingSection({ family, t, onDataChanged }: { family: FamilyArchiveVi
 
   const [showOrchestrate, setShowOrchestrate] = useState(false);
 
+  const { mode } = useMode();
+  const [voiceCall, setVoiceCall] = useState(false);
+  const activeProject = projects.find((p) => p.id === activeProjectId);
+
   const scrollBottom = () => {
     setTimeout(() => {
       const el = streamRef.current;
@@ -660,6 +665,15 @@ function ChattingSection({ family, t, onDataChanged }: { family: FamilyArchiveVi
                   />
                   <Button onClick={sendMessage} disabled={!activeProjectId || sending || !input.trim()} className="h-11 gap-2 bg-[#a64f43] hover:bg-[#95423a]"><Send size={15} /> {t('chat.send')}</Button>
                 </div>
+                {mode === 'RT' ? (
+                  <Button
+                    onClick={() => setVoiceCall(true)}
+                    disabled={!activeProjectId}
+                    className="mt-2 h-11 w-full gap-2 bg-[#3f8e55] hover:bg-[#367948]"
+                  >
+                    <Phone size={15} /> {t('chat.call.start')}
+                  </Button>
+                ) : null}
                 <p className="mt-2 text-[11px] text-[#8d7967]">{t('chat.disclaimer1', { api: API })}<br />{t('chat.disclaimer2')}</p>
               </div>
             </div>
@@ -676,6 +690,21 @@ function ChattingSection({ family, t, onDataChanged }: { family: FamilyArchiveVi
           ) : null}
         </div>
       </div>
+
+      <VoiceCallOverlay
+        open={voiceCall}
+        projectId={activeProjectId}
+        subjectName={activeProject ? (activeProject.chinese_name || activeProject.display_name || activeProject.subject_name) : undefined}
+        apiBase={API}
+        onClose={() => {
+          setVoiceCall(false);
+          if (activeProjectId) {
+            // 后端在挂断后异步落库对话记录，稍等片刻再刷新聊天框
+            setTimeout(() => openProject(activeProjectId), 1200);
+          }
+        }}
+        t={t}
+      />
     </section>
   );
 }
